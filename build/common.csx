@@ -10,10 +10,6 @@ private static int depth = 0;
 
 private static string lastWriteOperation;
 
-
-
-
-
 public static class DNU
 {
     public static void Build(string pathToProjectFile, string frameworkMoniker)
@@ -25,7 +21,12 @@ public static class DNU
 }
 
 public static void RoboCopy(string source, string destination, string arguments = null)
-{
+{    
+    if (!Directory.Exists(source))
+    {
+        throw new InvalidOperationException(string.Format("The directory {0} does not exist", source));
+    }
+    
     Command.Execute("robocopy", string.Format("{0} {1} {2}", source, destination, arguments));    
 }
 
@@ -100,6 +101,13 @@ public static string ResolveDirectory(string path, string filePattern)
     return Path.GetDirectoryName(pathToFile);
 }
 
+public static string GetFile(string path, string filePattern)
+{
+    WriteLine("Looking for {0} in {1}", filePattern, path);
+    string pathToFile = Directory.GetFiles(path, filePattern, SearchOption.AllDirectories).Single();
+    WriteLine("Found {0}", pathToFile);    
+    return pathToFile;    
+}
 
 private static string CopyToNuGetBuildDirectory(string projectPath)
 {
@@ -144,16 +152,14 @@ public static void PatchAssemblyVersionInfo(string version, string fileVersion, 
     var patchedAssemblyInfo = Regex.Replace(assemblyInfo, @"((?<=AssemblyVersion\(.)[\d\.]+)", fileVersion);
     patchedAssemblyInfo = Regex.Replace(patchedAssemblyInfo, @"((?<=AssemblyFileVersion\(.)[\d\.]+)", fileVersion);
     patchedAssemblyInfo = Regex.Replace(patchedAssemblyInfo, @"((?<=AssemblyInformationalVersion\(.)[\d\.]+)", version);        
-    patchedAssemblyInfo = Regex.Replace(patchedAssemblyInfo, @"(AssemblyCopyright\(""\D+)(\d*)", "${1}" + DateTime.Now.Year);        
+    patchedAssemblyInfo = Regex.Replace(patchedAssemblyInfo, @"(AssemblyCopyright\(""\D+)(\d*)", "${1}" + DateTime.Now.Year);            
     WriteFile(pathToAssemblyInfo, patchedAssemblyInfo);    
 }
-
-
 
 public static string GetVersionNumberFromSourceFile(string pathToSourceFile)
 {
     var source = ReadFile(pathToSourceFile);
-    var versionNumber = Regex.Match(source, @"version\s(.+).").Groups[1].Value;
+    var versionNumber = Regex.Match(source, @"version\s(\d\.\d\.\d\.\d)").Groups[1].Value;
     return versionNumber;
 }
 
@@ -232,29 +238,30 @@ public static class PathResolver
 public static class MsTest
 {    
     public static void Run(string pathToTestAssembly, string pathToTestAdapter)
-    {
+    {         
         string pathToMsTest = @"C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\IDE\CommonExtensions\Microsoft\TestWindow\vstest.console.exe";
         string result = Command.Execute(pathToMsTest, pathToTestAssembly + " /TestAdapterPath:" + pathToTestAdapter, @"(Total tests:.*)|(Test execution time:.*)|(Failed.*)");
     }
     
-    public static void RunWithCodeCoverage(string pathToTestAssembly, string pathToTestAdapter, params string[] includedAssemblies)
+    public static void RunWithCodeCoverage(string pathToTestAssembly, string pathToPackagesFolder, params string[] includedAssemblies)
     {
         string pathToMsTest = @"C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\IDE\CommonExtensions\Microsoft\TestWindow\vstest.console.exe";
+        string pathToTestAdapter = ResolveDirectory(pathToPackagesFolder, "xunit.runner.visualstudio.testadapter.dll");
         string result = Command.Execute(pathToMsTest, pathToTestAssembly + " /Enablecodecoverage" + " /TestAdapterPath:" + pathToTestAdapter, @"(Test execution.*)|(Test Run.*)|(Total tests.*)|\s*(.*coverage)|(Attachments:)");        
         var pathToCoverageFile = GetPathToCoverageFile(result);        
-        var pathToCoverageXmlFile = GetPathToCoverageXmlFile(pathToCoverageFile);    
+        var pathToCoverageXmlFile = GetPathToCoverageXmlFile(pathToCoverageFile);       
+             
         var directory = Path.GetDirectoryName(pathToCoverageFile);        
-        ConvertCoverageFileToXml(pathToCoverageFile);
-        CreateSummaryFile(pathToCoverageXmlFile, directory, includedAssemblies);
+        ConvertCoverageFileToXml(pathToCoverageFile, pathToPackagesFolder);
+        CreateSummaryFile(pathToCoverageXmlFile, directory, includedAssemblies, pathToPackagesFolder);
         ValidateCodeCoverage(directory);        
     }
-
 
     private static void ValidateCodeCoverage(string directory)
     {
         var pathToSummaryFile = Path.Combine(directory, "Summary.xml");       
         var summaryContent = ReadFile(pathToSummaryFile);                                                                           
-        var coverage = Regex.Match(summaryContent, "LineCoverage>(.*)<").Groups[1].Captures[0].Value;
+        var coverage = Regex.Match(summaryContent, "LineCoverage>(.*)<",RegexOptions.IgnoreCase).Groups[1].Captures[0].Value;
         
         WriteLine("Code coverage is {0}", coverage);
                                 
@@ -274,25 +281,25 @@ public static class MsTest
                 
     }
 
-    public static void ConvertCoverageFileToXml(string pathToCoverageFile)
+    public static void ConvertCoverageFileToXml(string pathToCoverageFile, string pathToPackagesFolder)
     {        
-        string pathToCoverageToXml = "../../packages/CoverageToXml.1.0.0/CoverageToXml.exe";        
+        string pathToCoverageToXml = GetFile(pathToPackagesFolder, "CoverageToXml.exe");                
         Command.Execute(pathToCoverageToXml, StringUtils.Quote(pathToCoverageFile), null);
     }
 
-    public static void CreateSummaryFile(string pathToCoverageXmlFile, string directory, string[] includedAssemblies)
-    {
-        
+    public static void CreateSummaryFile(string pathToCoverageXmlFile, string directory, string[] includedAssemblies, string pathToPackagesFolder)
+    {        
         var filters = includedAssemblies.Select (a => "+" + a).Aggregate ((current, next) => current + ";" + next).ToLower();
-
-        Command.Execute("../../packages/ReportGenerator.2.1.7.0/tools/ReportGenerator.exe", "-reports:" + StringUtils.Quote(pathToCoverageXmlFile) + " -targetdir:" + StringUtils.Quote(directory)
+        string pathToReportGenerator = GetFile(pathToPackagesFolder, "ReportGenerator.exe");
+        Command.Execute(pathToReportGenerator, "-reports:" + StringUtils.Quote(pathToCoverageXmlFile) + " -targetdir:" + StringUtils.Quote(directory)
             + " -reporttypes:xmlsummary -filters:" + filters );        
     }
 
 
     public static string GetPathToCoverageFile(string result)
     {
-        var path = Regex.Match(result, @"Attachments:\s*(.*.coverage)").Groups[1].Value;        
+        var path = Regex.Match(result, @"Attachments:\s*(.*.coverage)").Groups[1].Value;
+        WriteLine(path);        
         return path;        
     }
 
@@ -442,6 +449,22 @@ public static class NuGet
     public static void Restore(string projectDirectory)
     {
         var result = Command.Execute("nuget", "restore " + Path.Combine(projectDirectory, "packages.config") + " -PackagesDirectory " + Path.Combine(projectDirectory, @"..\packages"),".");        
+    }
+    
+    public static void Update(string pathToSolutionFile)
+    {
+        var result = Command.Execute("nuget" , "update " + pathToSolutionFile, ".");
+        WriteLine(result);    
+    }
+    
+    public static void BumpDependenciesToLatestVersion(string pathToNuSpecfile, string pathToPackagesFolder)
+    {
+        var nuSpec = XDocument.Load(pathToNuSpecfile);
+        var elements = nuSpec.Descendants("dependency");
+        foreach (var element in elements)
+        {
+            Console.WriteLine(element.Attribute("id").Value);
+        }
     }
 }
 

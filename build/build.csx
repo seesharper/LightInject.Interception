@@ -1,7 +1,4 @@
 
-
-
-
 #load "common.csx"
 
 private const string projectName = "LightInject.Interception";
@@ -9,16 +6,13 @@ private const string projectName = "LightInject.Interception";
 private const string portableClassLibraryProjectTypeGuid = "{786C830F-07A1-408B-BD7F-6EE04809D6DB}";
 private const string csharpProjectTypeGuid = "{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}";
 
-string pathToSourceFile = @"..\..\LightInject.Interception\LightInject.Interception.cs";
-string pathToBuildDirectory = @"../tmp/";
+string pathToSourceFile = @"..\src\LightInject.Interception\LightInject.Interception.cs";
+string pathToBuildDirectory = @"tmp/";
 private string version = GetVersionNumberFromSourceFile(pathToSourceFile);
 
-WriteLine(version);
 private string fileVersion = Regex.Match(version, @"(^[\d\.]+)-?").Groups[1].Captures[0].Value;
 
-
 WriteLine("LightInject.Interception version {0}" , version);
-
 
 Execute(() => InitializBuildDirectories(), "Preparing build directories");
 Execute(() => RenameSolutionFiles(), "Renaming solution files");
@@ -29,13 +23,10 @@ Execute(() => InternalizeSourceVersions(), "Internalizing source versions");
 Execute(() => RestoreNuGetPackages(), "NuGet");
 Execute(() => BuildAllFrameworks(), "Building all frameworks");
 Execute(() => RunAllUnitTests(), "Running unit tests");
-//Execute(() => AnalyzeTestCoverage(), "Analyzing test coverage");
-Execute(() => InitializeNuGetPackageDirectories(), "Preparing NuGet build directories");
+Execute(() => AnalyzeTestCoverage(), "Analyzing test coverage");
+Execute(() => CreateNugetPackages(), "Creating NuGet packages");
 
-
-
-
-private void InitializeNuGetPackageDirectories()
+private void CreateNugetPackages()
 {
 	string pathToNuGetBuildDirectory = Path.Combine(pathToBuildDirectory, "NuGetPackages");
 	DirectoryUtils.Delete(pathToNuGetBuildDirectory);
@@ -45,7 +36,9 @@ private void InitializeNuGetPackageDirectories()
 	Execute(() => CopyBinaryFilesToNuGetLibDirectory(), "Copy binary files to NuGet lib directory");
 	
 	Execute(() => CreateSourcePackage(), "Creating source package");		
-	Execute(() => CreateBinaryPackage(), "Creating binary package");		
+	Execute(() => CreateBinaryPackage(), "Creating binary package");
+    string myDocumentsFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+    RoboCopy(pathToBuildDirectory, myDocumentsFolder, "*.nupkg");		
 }
 
 private void CopySourceFilesToNuGetLibDirectory()
@@ -65,27 +58,25 @@ private void CopyBinaryFilesToNuGetLibDirectory()
 }
 
 private void CreateSourcePackage()
-{
-	string outputDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-	string pathToMetadataFile = Path.Combine(pathToBuildDirectory, "NugetPackages/Source/package/LightInject.Interception.Source.nuspec");
-	PatchNugetVersionInfo(pathToMetadataFile, version);		
-	NuGet.CreatePackage(pathToMetadataFile, outputDirectory);		
+{	    
+	string pathToMetadataFile = Path.Combine(pathToBuildDirectory, "NugetPackages/Source/package/LightInject.Interception.Source.nuspec");	
+    PatchNugetVersionInfo(pathToMetadataFile, version);		    
+	NuGet.CreatePackage(pathToMetadataFile, pathToBuildDirectory);   		
 }
 
 private void CreateBinaryPackage()
-{
-	string outputDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+{	    
 	string pathToMetadataFile = Path.Combine(pathToBuildDirectory, "NugetPackages/Binary/package/LightInject.Interception.nuspec");
 	PatchNugetVersionInfo(pathToMetadataFile, version);
-	NuGet.CreatePackage(pathToMetadataFile, outputDirectory);
+	NuGet.CreatePackage(pathToMetadataFile, pathToBuildDirectory);
 }
 
 private void CopySourceFile(string frameworkMoniker, string packageDirectoryName)
 {
-	string pathToMetadata = Path.Combine(pathToBuildDirectory, "../../LightInject.Interception/NuGet");
+	string pathToMetadata = "../src/LightInject.Interception/NuGet";
 	string pathToPackageDirectory = Path.Combine(pathToBuildDirectory, "NugetPackages/Source/package");	
 	RoboCopy(pathToMetadata, pathToPackageDirectory, "LightInject.Interception.Source.nuspec");	
-	string pathToSourceFile = "../tmp/" + frameworkMoniker + "/Source/LightInject.Interception";
+	string pathToSourceFile = "tmp/" + frameworkMoniker + "/Source/LightInject.Interception";
 	string pathToDestination = Path.Combine(pathToPackageDirectory, "content/" + packageDirectoryName + "/LightInject.Interception");
 	RoboCopy(pathToSourceFile, pathToDestination, "LightInject.Interception.cs");
 	FileUtils.Rename(Path.Combine(pathToDestination, "LightInject.Interception.cs"), "LightInject.Interception.cs.pp");
@@ -94,7 +85,7 @@ private void CopySourceFile(string frameworkMoniker, string packageDirectoryName
 
 private void CopyBinaryFile(string frameworkMoniker, string packageDirectoryName)
 {
-	string pathToMetadata = Path.Combine(pathToBuildDirectory, "../../LightInject.Interception/NuGet");
+	string pathToMetadata = "../src/LightInject.Interception/NuGet";
 	string pathToPackageDirectory = Path.Combine(pathToBuildDirectory, "NugetPackages/Binary/package");
 	RoboCopy(pathToMetadata, pathToPackageDirectory, "LightInject.Interception.nuspec");
 	string pathToBinaryFile =  ResolvePathToBinaryFile(frameworkMoniker);
@@ -104,10 +95,9 @@ private void CopyBinaryFile(string frameworkMoniker, string packageDirectoryName
 
 private string ResolvePathToBinaryFile(string frameworkMoniker)
 {
-	var pathToBinaryFile = Directory.GetFiles("../tmp/" + frameworkMoniker + "/Binary/LightInject.Interception/bin/Release","LightInject.Interception.dll", SearchOption.AllDirectories).First();
+	var pathToBinaryFile = Directory.GetFiles("tmp/" + frameworkMoniker + "/Binary/LightInject.Interception/bin/Release","LightInject.Interception.dll", SearchOption.AllDirectories).First();
 	return Path.GetDirectoryName(pathToBinaryFile);		
 }
-
 
 private void BuildAllFrameworks()
 {	
@@ -150,22 +140,23 @@ private void RestoreNuGetPackages(string frameworkMoniker)
 	NuGet.Restore(pathToProjectDirectory);
 	pathToProjectDirectory = Path.Combine(pathToBuildDirectory, frameworkMoniker + @"/Source/LightInject.Interception.Tests");
 	NuGet.Restore(pathToProjectDirectory);
+    NuGet.Update(GetFile(Path.Combine(pathToBuildDirectory, frameworkMoniker, "Binary"), "*.sln"));        
 }
-
 
 private void RunAllUnitTests()
 {	
 	DirectoryUtils.Delete("TestResults");
 	Execute(() => RunUnitTests("Net45"), "Running unit tests for Net45");
 	Execute(() => RunUnitTests("Net46"), "Running unit tests for Net46");
-	//Execute(() => AnalyzeTestCoverage("Net40"), "Analysing test coverage for Net40");			
+		
 }
 
 private void RunUnitTests(string frameworkMoniker)
 {
 	string pathToTestAssembly = Path.Combine(pathToBuildDirectory, frameworkMoniker + @"/Binary/LightInject.Interception.Tests/bin/Release/LightInject.Interception.Tests.dll");
-	string pathToTestAdapter = ResolveDirectory("../../packages/", "xunit.runner.visualstudio.testadapter.dll");
-	MsTest.Run(pathToTestAssembly, pathToTestAdapter);	
+	string testAdapterSearchDirectory = Path.Combine(pathToBuildDirectory, frameworkMoniker, @"Binary/packages/");
+    string pathToTestAdapterDirectory = ResolveDirectory(testAdapterSearchDirectory, "xunit.runner.visualstudio.testadapter.dll");
+	MsTest.Run(pathToTestAssembly, pathToTestAdapterDirectory);	
 }
 
 private void AnalyzeTestCoverage()
@@ -176,9 +167,10 @@ private void AnalyzeTestCoverage()
 
 private void AnalyzeTestCoverage(string frameworkMoniker)
 {	
-	string pathToTestAdapter = ResolveDirectory("../../packages/", "xunit.runner.visualstudio.testadapter.dll");
-	string pathToTestAssembly = Path.Combine(pathToBuildDirectory, frameworkMoniker + @"/Binary/LightInject.Interception.Tests/bin/Release/LightInject.Interception.Tests.dll");
-	MsTest.RunWithCodeCoverage(pathToTestAssembly, pathToTestAdapter, "lightinject.Interception.dll");
+    string pathToTestAssembly = Path.Combine(pathToBuildDirectory, frameworkMoniker + @"/Binary/LightInject.Interception.Tests/bin/Release/LightInject.Interception.Tests.dll");
+	string pathToPackagesFolder = Path.Combine(pathToBuildDirectory, frameworkMoniker, @"Binary/packages/");
+    string pathToTestAdapterDirectory = ResolveDirectory(pathToPackagesFolder, "xunit.runner.visualstudio.testadapter.dll");		
+    MsTest.RunWithCodeCoverage(pathToTestAssembly, pathToPackagesFolder,pathToTestAdapterDirectory, "LightInject.Interception.dll");
 }
 
 private void InitializBuildDirectories()
@@ -192,13 +184,13 @@ private void InitializBuildDirectories()
 
 private void InitializeNugetBuildDirectory(string frameworkMoniker)
 {
-	var pathToBinary = Path.Combine(pathToBuildDirectory, frameworkMoniker +  "/Binary");	
-	CreateDirectory(pathToBinary);
-	RoboCopy("../../../LightInject.Interception", pathToBinary, "/e /XD bin obj .vs NuGet TestResults packages");	
+	var pathToBinary = Path.Combine(pathToBuildDirectory, frameworkMoniker +  "/Binary");		
+    CreateDirectory(pathToBinary);
+	RoboCopy("../src", pathToBinary, "/e /XD bin obj .vs NuGet TestResults packages");	
 				
 	var pathToSource = Path.Combine(pathToBuildDirectory,  frameworkMoniker +  "/Source");	
 	CreateDirectory(pathToSource);
-	RoboCopy("../../../LightInject.Interception", pathToSource, "/e /XD bin obj .vs NuGet TestResults packages");
+	RoboCopy("../src", pathToSource, "/e /XD bin obj .vs NuGet TestResults packages");
 	
 	if (frameworkMoniker.StartsWith("DNX"))
 	{
@@ -273,13 +265,12 @@ private void PatchPackagesConfig()
 	PatchPackagesConfig("net45");	
 }
 
-
 private void PatchPackagesConfig(string frameworkMoniker)
 {
-	string pathToPackagesConfig = Path.Combine(pathToBuildDirectory, frameworkMoniker + @"/Binary/Lightinject.Interception/packages.config");
+	string pathToPackagesConfig = Path.Combine(pathToBuildDirectory, frameworkMoniker + @"/Binary/LightInject.Interception/packages.config");
 	ReplaceInFile(@"(targetFramework=\"").*(\"".*)", "$1"+ frameworkMoniker + "$2", pathToPackagesConfig);
 	
-	pathToPackagesConfig = Path.Combine(pathToBuildDirectory, frameworkMoniker + @"/Source/Lightinject.Interception/packages.config");
+	pathToPackagesConfig = Path.Combine(pathToBuildDirectory, frameworkMoniker + @"/Source/LightInject.Interception/packages.config");
 	ReplaceInFile(@"(targetFramework=\"").*(\"".*)", "$1"+ frameworkMoniker + "$2", pathToPackagesConfig);
 }
 
@@ -293,9 +284,9 @@ private void PatchAssemblyInfo()
 
 private void PatchAssemblyInfo(string framework)
 {	
-	var pathToAssemblyInfo = Path.Combine(pathToBuildDirectory, framework + @"\Binary\Lightinject.Interception\Properties\AssemblyInfo.cs");	
+	var pathToAssemblyInfo = Path.Combine(pathToBuildDirectory, framework + @"\Binary\LightInject.Interception\Properties\AssemblyInfo.cs");	
 	PatchAssemblyVersionInfo(version, fileVersion, framework, pathToAssemblyInfo);
-	pathToAssemblyInfo = Path.Combine(pathToBuildDirectory, framework + @"\Source\Lightinject.Interception\Properties\AssemblyInfo.cs");
+	pathToAssemblyInfo = Path.Combine(pathToBuildDirectory, framework + @"\Source\LightInject.Interception\Properties\AssemblyInfo.cs");
 	PatchAssemblyVersionInfo(version, fileVersion, framework, pathToAssemblyInfo);	
 	PatchInternalsVisibleToAttribute(pathToAssemblyInfo);		
 }
@@ -316,9 +307,9 @@ private void PatchProjectFiles()
 
 private void PatchProjectFile(string frameworkMoniker, string frameworkVersion)
 {
-	var pathToProjectFile = Path.Combine(pathToBuildDirectory, frameworkMoniker + @"/Binary/Lightinject.Interception/LightInject.Interception.csproj");
+	var pathToProjectFile = Path.Combine(pathToBuildDirectory, frameworkMoniker + @"/Binary/LightInject.Interception/LightInject.Interception.csproj");
 	PatchProjectFile(frameworkMoniker, frameworkVersion, pathToProjectFile);
-	pathToProjectFile = Path.Combine(pathToBuildDirectory, frameworkMoniker + @"/Source/Lightinject.Interception/LightInject.Interception.csproj");
+	pathToProjectFile = Path.Combine(pathToBuildDirectory, frameworkMoniker + @"/Source/LightInject.Interception/LightInject.Interception.csproj");
 	PatchProjectFile(frameworkMoniker, frameworkVersion, pathToProjectFile);
 	PatchTestProjectFile(frameworkMoniker);
 }
@@ -327,9 +318,7 @@ private void PatchProjectFile(string frameworkMoniker, string frameworkVersion, 
 {
 	WriteLine("Patching {0} ", pathToProjectFile);	
 	SetProjectFrameworkMoniker(frameworkMoniker, pathToProjectFile);
-	SetProjectFrameworkVersion(frameworkVersion, pathToProjectFile);
-	
-	
+	SetProjectFrameworkVersion(frameworkVersion, pathToProjectFile);		
 	SetHintPath(frameworkMoniker, pathToProjectFile);	
 }
 
@@ -361,11 +350,10 @@ private void SetHintPath(string frameworkMoniker, string pathToProjectFile)
 	ReplaceInFile(@"(.*\\packages\\LightInject.*\\lib\\).*(\\.*)","$1"+ frameworkMoniker + "$2", pathToProjectFile);	
 }
 
-
 private void SetTargetFrameworkProfile()
 {
 	
-	var pathToProjectFile = Path.Combine(pathToBuildDirectory, @"PCL_111/Binary/Lightinject.Interception/LightInject.Interception.csproj");
+	var pathToProjectFile = Path.Combine(pathToBuildDirectory, @"PCL_111/Binary/LightInject.Interception/LightInject.Interception.csproj");
 	XDocument xmlDocument = XDocument.Load(pathToProjectFile);	
 	var frameworkVersionElement = xmlDocument.Descendants().SingleOrDefault(p => p.Name.LocalName == "TargetFrameworkProfile");
 	if (frameworkVersionElement == null)
@@ -383,13 +371,12 @@ private void SetTargetFrameworkProfile()
 	xmlDocument.Save(pathToProjectFile);
 }
 
-
 private void PatchTestProjectFile(string frameworkMoniker)
 {
-	var pathToProjectFile = Path.Combine(pathToBuildDirectory, frameworkMoniker + @"\Binary\Lightinject.Interception.Tests\LightInject.Interception.Tests.csproj");
+	var pathToProjectFile = Path.Combine(pathToBuildDirectory, frameworkMoniker + @"\Binary\LightInject.Interception.Tests\LightInject.Interception.Tests.csproj");
 	WriteLine("Patching {0} ", pathToProjectFile);	
 	SetProjectFrameworkMoniker(frameworkMoniker, pathToProjectFile);
-	pathToProjectFile = Path.Combine(pathToBuildDirectory, frameworkMoniker + @"\Source\Lightinject.Interception.Tests\LightInject.Interception.Tests.csproj");
+	pathToProjectFile = Path.Combine(pathToBuildDirectory, frameworkMoniker + @"\Source\LightInject.Interception.Tests\LightInject.Interception.Tests.csproj");
 	WriteLine("Patching {0} ", pathToProjectFile);
 	SetProjectFrameworkMoniker(frameworkMoniker, pathToProjectFile);
 }
