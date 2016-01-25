@@ -104,9 +104,17 @@ public static string ResolveDirectory(string path, string filePattern)
 public static string GetFile(string path, string filePattern)
 {
     WriteLine("Looking for {0} in {1}", filePattern, path);
-    string pathToFile = Directory.GetFiles(path, filePattern, SearchOption.AllDirectories).Single();
-    WriteLine("Found {0}", pathToFile);    
-    return pathToFile;    
+    string[] pathsToFile = Directory.GetFiles(path, filePattern, SearchOption.AllDirectories).ToArray();
+    if (pathsToFile.Length > 1)
+    {
+        WriteLine("Found multiple files");
+        var files = pathsToFile.Select(p => new FileInfo(p));
+        var file = files.OrderBy(f => f.LastWriteTime).Last();
+        WriteLine("Choosing {0}",file.FullName);
+        return file.FullName;
+    }
+    WriteLine("Found {0}", pathsToFile[0]);    
+    return pathsToFile[0];    
 }
 
 private static string CopyToNuGetBuildDirectory(string projectPath)
