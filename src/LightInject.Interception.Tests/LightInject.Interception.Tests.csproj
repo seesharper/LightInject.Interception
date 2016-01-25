@@ -76,6 +76,7 @@
     <Compile Include="DynamicMethodBuilderTests.cs" />
     <Compile Include="DynamicMethodBuilderVerificationTests.cs" />
     <Compile Include="InterceptorTests.cs" />
+    <Compile Include="issue1.cs" />
     <Compile Include="MethodBuilderDynamicMethodSkeleton.cs" />
     <Compile Include="MethodBuilderMethodSkeleton.cs" />
     <Compile Include="MethodInfoExtensionsTests.cs" />
