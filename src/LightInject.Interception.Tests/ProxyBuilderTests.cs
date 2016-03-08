@@ -855,6 +855,17 @@ namespace LightInject.Interception.Tests
         }
 
         [Fact]
+        public void GetProxyType_TypeAttributeWithStaticConstructor_ReturnsProxyWithClassAttribute()
+        {
+            var proxyDefinition = new ProxyDefinition(typeof(IMethodWithNoParameters));
+            proxyDefinition.AddCustomAttributes(typeof(ClassWithCustomAttributeWithStaticConstructor).GetCustomAttributesData().ToArray());
+            var proxyBuilder = new ProxyBuilder();
+            var proxyType = proxyBuilder.GetProxyType(proxyDefinition);
+
+            Assert.True(proxyType.IsDefined(typeof(CustomAttributeWithStaticConstructor), true));
+        }
+
+        [Fact]
         public void GetProxyType_TypeAttributeWithPublicField_ReturnsProxyWithClassAttribute()
         {
             var proxyDefinition = new ProxyDefinition(typeof(IMethodWithNoParameters));

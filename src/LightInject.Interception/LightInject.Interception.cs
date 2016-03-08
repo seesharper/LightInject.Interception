@@ -21,7 +21,7 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 ******************************************************************************
-    LightInject.Interception version 1.0.0.10 
+    LightInject.Interception version 1.0.0.11 
     http://www.lightinject.net/
     http://twitter.com/bernhardrichter
 ******************************************************************************/
@@ -1232,7 +1232,7 @@ namespace LightInject.Interception
 
             var constructorArguments = customAttributeData.ConstructorArguments.Select(c => c.ArgumentType);
 
-            var constructor = customAttributeData.AttributeType.GetTypeInfo().DeclaredConstructors.Where(c => c.GetParameters().Select(p => p.ParameterType).SequenceEqual(constructorArguments)).Single();
+            var constructor = customAttributeData.AttributeType.GetTypeInfo().DeclaredConstructors.Where(c => c.GetParameters().Select(p => p.ParameterType).SequenceEqual(constructorArguments)).Where(c => !c.IsStatic).Single();
 
 
             return new CustomAttributeBuilder(

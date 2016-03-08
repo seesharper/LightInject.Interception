@@ -359,6 +359,15 @@ namespace LightInject.Interception.Tests
 
     }
 
+    public class CustomAttributeWithStaticConstructor : Attribute
+    {
+        static CustomAttributeWithStaticConstructor()
+        {
+            
+        }
+    }
+
+
     public class CustomAttributeWithNamedArgument : Attribute
     {
         public int Value { get; set; }
@@ -377,6 +386,12 @@ namespace LightInject.Interception.Tests
         {
             Value = value;
         }
+    }
+
+    [CustomAttributeWithStaticConstructor]
+    public class ClassWithCustomAttributeWithStaticConstructor
+    {
+        
     }
 
     [CustomAttributeWithNamedArgument(Value = 42)]
