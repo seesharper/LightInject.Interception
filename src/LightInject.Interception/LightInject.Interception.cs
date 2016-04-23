@@ -21,7 +21,7 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 ******************************************************************************
-    LightInject.Interception version 1.0.0.11 
+    LightInject.Interception version 1.0.2
     http://www.lightinject.net/
     http://twitter.com/bernhardrichter
 ******************************************************************************/
