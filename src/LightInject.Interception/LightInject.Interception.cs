@@ -21,7 +21,7 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 ******************************************************************************
-    LightInject.Interception version 1.1.0
+    LightInject.Interception version 1.2.0
     http://www.lightinject.net/
     http://twitter.com/bernhardrichter
 ******************************************************************************/
@@ -175,6 +175,7 @@ namespace LightInject.Interception
     using System.Linq;
     using System.Reflection;
     using System.Reflection.Emit;
+    using System.Threading.Tasks;
 
     /// <summary>
     /// Implemented by all proxy types.
@@ -2204,6 +2205,68 @@ namespace LightInject.Interception
         public object Invoke(IInvocationInfo invocationInfo)
         {
             return implementation(invocationInfo);
+        }
+    }
+
+    /// <summary>
+    /// Base class for implementing an <see cref="IInterceptor"/>
+    /// that also supports asynchronous methods.
+    /// </summary>
+    public abstract class Interceptor : IInterceptor
+    {
+        private static readonly MethodInfo OpenGenericInvokeAsyncMethod;
+
+        static Interceptor()
+        {
+            OpenGenericInvokeAsyncMethod = typeof(Interceptor).GetTypeInfo().DeclaredMethods
+                .FirstOrDefault(m => m.IsGenericMethod && m.Name == "InvokeAsync");
+        }
+
+        /// <summary>
+        /// Invoked when a method call is intercepted.
+        /// </summary>
+        /// <param name="invocationInfo">The <see cref="IInvocationInfo"/> instance that 
+        /// contains information about the current method call.</param>
+        /// <returns>The return value from the method.</returns>
+        public virtual object Invoke(IInvocationInfo invocationInfo)
+        {
+            if (invocationInfo.Method.ReturnType == typeof(Task))
+            {
+                return InvokeAsync(invocationInfo);
+            }
+
+            if (invocationInfo.Method.ReturnType.IsGenericType &&
+                invocationInfo.Method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>))
+            {
+                var closedGenericInvokeAsyncMethod =
+                    OpenGenericInvokeAsyncMethod.MakeGenericMethod(
+                        invocationInfo.Method.ReturnType.GetGenericArguments());
+                return closedGenericInvokeAsyncMethod.Invoke(this, new[] { invocationInfo });
+
+            }
+            return invocationInfo.Proceed();
+        }
+
+        /// <summary>
+        /// Invoked when a method that returns <see cref="Task"/> is intercepted.
+        /// </summary>
+        /// <param name="invocationInfo">The <see cref="IInvocationInfo"/> instance that 
+        /// contains information about the current method call.</param>
+        /// <returns><see cref="Task"/></returns>
+        protected virtual Task InvokeAsync(IInvocationInfo invocationInfo)
+        {
+            return (Task)invocationInfo.Proceed();
+        }
+
+        /// <summary>
+        /// Invoked when a method that returns <see cref="Task{TResult}"/> is intercepted.
+        /// </summary>
+        /// <param name="invocationInfo">The <see cref="IInvocationInfo"/> instance that 
+        /// contains information about the current method call.</param>
+        /// <returns><see cref="Task{TResult}"/></returns>
+        protected virtual Task<T> InvokeAsync<T>(IInvocationInfo invocationInfo)
+        {
+            return (Task<T>)invocationInfo.Proceed();
         }
     }
 }

@@ -68,6 +68,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyAssert.cs" />
+    <Compile Include="AsyncTests.cs" />
     <Compile Include="ClassBasedProxyBuilderTests.cs" />
     <Compile Include="ClassBasedProxyBuilderVerificationTests.cs" />
     <Compile Include="ContainerFactory.cs" />

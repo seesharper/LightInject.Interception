@@ -51,6 +51,44 @@ The **IInvocationInfo** instance passed into the **Invoke** method contains info
 
 The **Proceed** method calls down the chain of interceptors and ultimately the actual target instance.   
 
+## Asynchronous Interceptors
+
+When intercepting asynchronous methods we need to be able to await the target method.
+This can be done by inheriting from the abstract **Interceptor** class that does the heavy lifting.
+
+```
+public class AsyncInterceptor : Interceptor
+{
+    public override object Invoke(IInvocationInfo invocationInfo)
+    {
+        // Invoked for all intercepted methods, 
+        // both synchronous and asynchronous.
+        // Before method invocation            
+        var value = base.Invoke(invocationInfo);            
+        // After method invocation
+        return value;
+    }
+
+    protected override async Task InvokeAsync(IInvocationInfo invocationInfo)
+    {
+        // Invoked for methods that return Task
+        // Before method invocation
+        await base.InvokeAsync(invocationInfo);
+        // After method invocation
+    }
+
+    protected override async Task<T> InvokeAsync<T>(IInvocationInfo invocationInfo)
+    {
+        // Invoked for methods that returns Task<T>
+        // Before method invocation
+        var value = await base.InvokeAsync<T>(invocationInfo);
+        // After method invocation
+        return value;
+    }
+}
+```
+> Note: Do not call invocationInfo.Proceed() directly when inheriting from the **Interceptor** class. 
+
 ## Single Interceptor ##
 
 This example shows how to configure the service container with a single interceptor to handle all method calls.
