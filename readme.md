@@ -54,10 +54,10 @@ The **Proceed** method calls down the chain of interceptors and ultimately the a
 ## Asynchronous Interceptors
 
 When intercepting asynchronous methods we need to be able to await the target method.
-This can be done by inheriting from the abstract **Interceptor** class that does the heavy lifting.
+This can be done by inheriting from the abstract **AsyncInterceptor** class that does the heavy lifting with invoking the asynchronous wrapper methods.
 
 ```
-public class AsyncInterceptor : Interceptor
+public class SampleAsyncInterceptor : AsyncInterceptor
 {
     public override object Invoke(IInvocationInfo invocationInfo)
     {
@@ -87,7 +87,7 @@ public class AsyncInterceptor : Interceptor
     }
 }
 ```
-> Note: Do not call invocationInfo.Proceed() directly when inheriting from the **Interceptor** class. 
+> Note: Do not call invocationInfo.Proceed() directly when inheriting from the **AsyncInterceptor** class. 
 
 ## Single Interceptor ##
 

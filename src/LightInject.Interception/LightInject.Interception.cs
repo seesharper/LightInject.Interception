@@ -1766,7 +1766,7 @@ namespace LightInject.Interception
         {
             var methodName = targetMethod.Name.Substring(0, 1).ToLower() + targetMethod.Name.Substring(1);
 
-            var memberName = GetUniqueMemberName(methodName + "Interceptor");
+            var memberName = GetUniqueMemberName(methodName + "AsyncInterceptor");
 
             return typeBuilder.DefineField(memberName, typeof(Lazy<IInterceptor>), FieldAttributes.Private);
         }
@@ -2212,13 +2212,21 @@ namespace LightInject.Interception
     /// Base class for implementing an <see cref="IInterceptor"/>
     /// that also supports asynchronous methods.
     /// </summary>
-    public abstract class Interceptor : IInterceptor
+    public abstract class AsyncInterceptor : IInterceptor
     {
         private static readonly MethodInfo OpenGenericInvokeAsyncMethod;
+        
+        private static readonly ConcurrentDictionary<Type, Func<object, object[], object>> InvokeAsyncDelegates =
+            new ConcurrentDictionary<Type, Func<object, object[], object>>(); 
 
-        static Interceptor()
+        private static readonly ConcurrentDictionary<Type, TaskType> TaskTypes =
+            new ConcurrentDictionary<Type, TaskType>();
+
+        private readonly IMethodBuilder methodBuilder = new DynamicMethodBuilder();
+
+        static AsyncInterceptor()
         {
-            OpenGenericInvokeAsyncMethod = typeof(Interceptor).GetTypeInfo().DeclaredMethods
+            OpenGenericInvokeAsyncMethod = typeof(AsyncInterceptor).GetTypeInfo().DeclaredMethods
                 .FirstOrDefault(m => m.IsGenericMethod && m.Name == "InvokeAsync");
         }
 
@@ -2230,21 +2238,73 @@ namespace LightInject.Interception
         /// <returns>The return value from the method.</returns>
         public virtual object Invoke(IInvocationInfo invocationInfo)
         {
-            if (invocationInfo.Method.ReturnType == typeof(Task))
+            Type returnType = invocationInfo.Method.ReturnType;
+
+            TaskType taskType = GetTaskType(returnType);
+
+            if (taskType == TaskType.None)
+            {
+                return invocationInfo.Proceed();
+            }
+
+            if (taskType == TaskType.Task)
             {
                 return InvokeAsync(invocationInfo);
             }
 
-            if (invocationInfo.Method.ReturnType.IsGenericType &&
-                invocationInfo.Method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>))
+            if (taskType == TaskType.TaskOfT)
             {
-                var closedGenericInvokeAsyncMethod =
-                    OpenGenericInvokeAsyncMethod.MakeGenericMethod(
-                        invocationInfo.Method.ReturnType.GetGenericArguments());
-                return closedGenericInvokeAsyncMethod.Invoke(this, new[] { invocationInfo });
-
+                GetInvokeAsyncDelegate(returnType)(this, new object[] {invocationInfo});                                   
             }
             return invocationInfo.Proceed();
+        }
+
+        private Func<object, object[], object> GetInvokeAsyncDelegate(Type returnType)
+        {
+            return InvokeAsyncDelegates.GetOrAdd(returnType, CreateInvokeAsyncDelegate);
+        }
+
+        private Func<object, object[], object> CreateInvokeAsyncDelegate(Type returnType)
+        {
+            var closedGenericInvokeMethod = CreateClosedGenericInvokeMethod(returnType);
+            return methodBuilder.GetDelegate(closedGenericInvokeMethod);
+        }
+
+        private static TaskType GetTaskType(Type returnType)
+        {
+            return TaskTypes.GetOrAdd(returnType, ResolveTaskType);
+        }
+
+        private static TaskType ResolveTaskType(Type returnType)
+        {
+            if (IsTask(returnType))
+            {
+                return TaskType.Task;
+            }
+
+            if (IsTaskOfT(returnType))
+            {
+                return TaskType.TaskOfT;
+            }
+
+            return TaskType.None;
+        }
+
+        private static bool IsTaskOfT(Type returnType)
+        {
+            return returnType.GetTypeInfo().IsGenericType &&
+                   returnType.GetTypeInfo().GetGenericTypeDefinition() == typeof(Task<>);
+        }
+
+        private static bool IsTask(Type returnType)
+        {
+            return returnType == typeof(Task);
+        }
+        
+        private static MethodInfo CreateClosedGenericInvokeMethod(Type returnType)
+        {
+            return OpenGenericInvokeAsyncMethod.MakeGenericMethod(
+                        returnType.GetGenericArguments());
         }
 
         /// <summary>
@@ -2267,6 +2327,13 @@ namespace LightInject.Interception
         protected virtual Task<T> InvokeAsync<T>(IInvocationInfo invocationInfo)
         {
             return (Task<T>)invocationInfo.Proceed();
+        }
+        
+        private enum TaskType
+        {
+            None,
+            Task,
+            TaskOfT
         }
     }
 }
