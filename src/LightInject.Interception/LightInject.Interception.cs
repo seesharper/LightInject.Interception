@@ -21,7 +21,7 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 ******************************************************************************
-    LightInject.Interception version 1.2.0
+    LightInject.Interception version 1.2.1
     http://www.lightinject.net/
     http://twitter.com/bernhardrichter
 ******************************************************************************/
@@ -511,8 +511,8 @@ namespace LightInject.Interception
         }
 
         private static void CallTargetMethod(MethodInfo method, ILGenerator il)
-        {            
-            il.Emit(method.IsAbstract ? OpCodes.Callvirt : OpCodes.Call, method);
+        {                        
+            il.Emit(method.IsAbstract || method.GetDeclaringType() == typeof(AsyncInterceptor) ? OpCodes.Callvirt : OpCodes.Call, method);
         }
 
         private static void PushInstance(MethodInfo method, ILGenerator il)
@@ -2254,7 +2254,7 @@ namespace LightInject.Interception
 
             if (taskType == TaskType.TaskOfT)
             {
-                GetInvokeAsyncDelegate(returnType)(this, new object[] {invocationInfo});                                   
+                return GetInvokeAsyncDelegate(returnType)(this, new object[] {invocationInfo});                                   
             }
             return invocationInfo.Proceed();
         }
