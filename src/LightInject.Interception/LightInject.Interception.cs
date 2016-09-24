@@ -2241,12 +2241,7 @@ namespace LightInject.Interception
             Type returnType = invocationInfo.Method.ReturnType;
 
             TaskType taskType = GetTaskType(returnType);
-
-            if (taskType == TaskType.None)
-            {
-                return invocationInfo.Proceed();
-            }
-
+           
             if (taskType == TaskType.Task)
             {
                 return InvokeAsync(invocationInfo);
