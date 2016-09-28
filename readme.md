@@ -55,23 +55,18 @@ The **Proceed** method calls down the chain of interceptors and ultimately the a
 
 When intercepting asynchronous methods we need to be able to await the target method.
 This can be done by inheriting from the abstract **AsyncInterceptor** class that does the heavy lifting with invoking the asynchronous wrapper methods.
+The **AsyncInterceptor** class is a decorator that wraps around another **IInterceptor**. 
 
-```
+```csharp
 public class SampleAsyncInterceptor : AsyncInterceptor
-{
-    public override object Invoke(IInvocationInfo invocationInfo)
+{    
+    public SampleAsyncInterceptor(IInterceptor targetInterceptor) : base(targetInterceptor)
     {
-        // Invoked for all intercepted methods, 
-        // both synchronous and asynchronous.
-        // Before method invocation            
-        var value = base.Invoke(invocationInfo);            
-        // After method invocation
-        return value;
     }
 
     protected override async Task InvokeAsync(IInvocationInfo invocationInfo)
     {
-        // Invoked for methods that return Task
+        InterceptedTaskMethod = true;
         // Before method invocation
         await base.InvokeAsync(invocationInfo);
         // After method invocation
@@ -79,15 +74,32 @@ public class SampleAsyncInterceptor : AsyncInterceptor
 
     protected override async Task<T> InvokeAsync<T>(IInvocationInfo invocationInfo)
     {
-        // Invoked for methods that returns Task<T>
+        InterceptedTaskOfTMethod = true;
         // Before method invocation
         var value = await base.InvokeAsync<T>(invocationInfo);
-        // After method invocation
+        // After method invocation           
         return value;
     }
 }
 ```
 > Note: Do not call invocationInfo.Proceed() directly when inheriting from the **AsyncInterceptor** class. 
+
+We can now create a new instance of the **SampleAsyncInterceptor** class like this:
+
+```csharp
+var asyncInterceptor = new SampleAsyncInterceptor(new SampleInterceptor());
+```
+
+Another option is to register our **IInterceptor** with the container and use the **Decorate** method 
+to apply the **SampleAsyncInterceptor** as a decorator.
+
+```csharp
+container.Register<IInterceptor, SampleInterceptor>();
+container.Decorate<IInterceptor, SampleAsyncInterceptor>();
+container.Intercept(sr => sr.ServiceType == typeof(IFoo), factory => factory.GetInstance<IInterceptor>()); 
+```
+
+>Note: Only synchronous methods are passed down to the decorated **IInterceptor** 
 
 ## Single Interceptor ##
 

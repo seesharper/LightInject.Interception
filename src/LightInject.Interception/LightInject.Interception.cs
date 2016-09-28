@@ -2209,11 +2209,13 @@ namespace LightInject.Interception
     }
 
     /// <summary>
-    /// Base class for implementing an <see cref="IInterceptor"/>
-    /// that also supports asynchronous methods.
+    /// Base class for implementing an <see cref="IInterceptor"/> decorator
+    /// that allows before/after logic to be written for asynchronous methods.
     /// </summary>
     public abstract class AsyncInterceptor : IInterceptor
     {
+        private readonly IInterceptor targetInterceptor;
+
         private static readonly MethodInfo OpenGenericInvokeAsyncMethod;
         
         private static readonly ConcurrentDictionary<Type, Func<object, object[], object>> InvokeAsyncDelegates =
@@ -2230,13 +2232,18 @@ namespace LightInject.Interception
                 .FirstOrDefault(m => m.IsGenericMethod && m.Name == "InvokeAsync");
         }
 
+        protected AsyncInterceptor(IInterceptor targetInterceptor)
+        {
+            this.targetInterceptor = targetInterceptor;
+        }
+
         /// <summary>
         /// Invoked when a method call is intercepted.
         /// </summary>
         /// <param name="invocationInfo">The <see cref="IInvocationInfo"/> instance that 
         /// contains information about the current method call.</param>
         /// <returns>The return value from the method.</returns>
-        public virtual object Invoke(IInvocationInfo invocationInfo)
+        public object Invoke(IInvocationInfo invocationInfo)
         {
             Type returnType = invocationInfo.Method.ReturnType;
 
@@ -2251,7 +2258,8 @@ namespace LightInject.Interception
             {
                 return GetInvokeAsyncDelegate(returnType)(this, new object[] {invocationInfo});                                   
             }
-            return invocationInfo.Proceed();
+
+            return targetInterceptor.Invoke(invocationInfo);
         }
 
         private Func<object, object[], object> GetInvokeAsyncDelegate(Type returnType)
