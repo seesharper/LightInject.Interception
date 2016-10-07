@@ -78,7 +78,7 @@ namespace LightInject
         /// <param name="defineProxyType">An action delegate that is used to define the proxy type.</param>
         public static void Intercept(this IServiceRegistry serviceRegistry, Func<ServiceRegistration, bool> serviceSelector, Action<IServiceFactory, ProxyDefinition> defineProxyType)
         {
-            Intercept(serviceRegistry, serviceSelector, Type.EmptyTypes, defineProxyType);
+            Intercept(serviceRegistry, serviceSelector, new Type[0], defineProxyType);
         }
 
         /// <summary>
@@ -90,7 +90,7 @@ namespace LightInject
         /// <param name="getInterceptor">A function delegate that is used to create the <see cref="IInterceptor"/> instance.</param>        
         public static void Intercept(this IServiceRegistry serviceRegistry, Func<ServiceRegistration, bool> serviceSelector, Func<IServiceFactory, IInterceptor> getInterceptor)
         {
-            Intercept(serviceRegistry, serviceSelector, Type.EmptyTypes, (factory, definition) => definition.Implement(() => getInterceptor(factory)));
+            Intercept(serviceRegistry, serviceSelector, new Type[0], (factory, definition) => definition.Implement(() => getInterceptor(factory)));
         }
 
         /// <summary>
@@ -159,7 +159,7 @@ namespace LightInject
             }
 
             var proxyType = CreateProxyType(registration.ImplementingType, additionalInterfaces, serviceFactory, defineProxyType, registration);
-            registration.ImplementingType = proxyType;            
+            registration.ImplementingType = proxyType;
             return registration;
 
         }
@@ -511,7 +511,7 @@ namespace LightInject.Interception
         }
 
         private static void CallTargetMethod(MethodInfo method, ILGenerator il)
-        {                        
+        {
             il.Emit(method.IsAbstract || method.GetDeclaringType() == typeof(AsyncInterceptor) ? OpCodes.Callvirt : OpCodes.Call, method);
         }
 
@@ -931,13 +931,13 @@ namespace LightInject.Interception
         {
             if (targetType.GetTypeInfo().IsInterface)
             {
-                return targetType.GetInterfaces().Concat(additionalInterfaces).Distinct().ToArray();
+                return targetType.GetTypeInfo().ImplementedInterfaces.Concat(additionalInterfaces).Distinct().ToArray();
             }
 
             return additionalInterfaces.ToArray();
         }
     }
-
+    
     /// <summary>
     /// Extends the <see cref="MethodInfo"/> class.
     /// </summary>
@@ -988,7 +988,7 @@ namespace LightInject.Interception
         /// <returns>true if the <paramref name="method"/> represent a property setter, otherwise , false.</returns>
         public static bool IsPropertySetter(this MethodInfo method)
         {
-            return method.GetDeclaringType().GetProperties().Any(prop => prop.GetSetMethod() == method);
+            return method.GetDeclaringType().GetTypeInfo().DeclaredProperties.Any(prop => prop.SetMethod == method);
         }
 
         /// <summary>
@@ -998,7 +998,7 @@ namespace LightInject.Interception
         /// <returns>true if the <paramref name="method"/> represent a property getter, otherwise , false.</returns>
         public static bool IsPropertyGetter(this MethodInfo method)
         {
-            return method.GetDeclaringType().GetProperties().Any(prop => prop.GetGetMethod() == method);
+            return method.GetDeclaringType().GetTypeInfo().DeclaredProperties.Any(prop => prop.GetMethod == method);
         }
 
         /// <summary>
@@ -1008,7 +1008,7 @@ namespace LightInject.Interception
         /// <returns>The <see cref="PropertyInfo"/> for which the given <paramref name="method"/> represents a property accessor.</returns>
         public static PropertyInfo GetProperty(this MethodInfo method)
         {
-            return method.GetDeclaringType().GetProperties().FirstOrDefault(p => p.GetGetMethod() == method || p.GetSetMethod() == method);
+            return method.GetDeclaringType().GetTypeInfo().DeclaredProperties.FirstOrDefault(p => p.GetMethod == method || p.SetMethod == method);
         }
     }
 
@@ -1029,21 +1029,23 @@ namespace LightInject.Interception
 
             if (targetType.GetTypeInfo().IsInterface)
             {
-                interceptableMethods = targetType.GetMethods()
+                interceptableMethods = targetType.GetTypeInfo().DeclaredMethods
                                           .Where(m => !m.IsSpecialName)
-                                          .Concat(typeof(object).GetMethods().Where(m => m.IsVirtual))
-                                          .Concat(additionalInterfaces.SelectMany(i => i.GetMethods()))
+                                          .Concat(typeof(object).GetTypeInfo().DeclaredMethods.Where(m => m.IsVirtual && !m.IsFamily))
+                                          .Concat(additionalInterfaces.SelectMany(i => i.GetTypeInfo().DeclaredMethods))
                                           .Distinct()
-                                          .ToArray();
+                                          .ToArray();                
             }
             else
-            {
-                interceptableMethods = targetType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                                          .Concat(targetType.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance).Where(m => m.IsFamily && !m.IsDeclaredBy<object>()))
-                                          .Where(m => m.IsVirtual && !m.IsFinal)
-                                          .Concat(additionalInterfaces.SelectMany(i => i.GetMethods()))
-                                          .Distinct()
-                                          .ToArray();
+            {                
+                interceptableMethods = targetType.GetRuntimeMethods().Where(m => m.IsPublic)
+                    .Concat(
+                        targetType.GetTypeInfo()
+                            .DeclaredMethods.Where(
+                                m => !m.IsPublic && m.IsFamily && !m.IsDeclaredBy<object>()))
+                    .Where(m => m.IsVirtual && !m.IsFinal && !m.IsStatic)
+                    .Concat(additionalInterfaces.SelectMany(i => i.GetTypeInfo().DeclaredMethods))
+                    .Distinct().ToArray();                
             }
 
             return interceptableMethods;
@@ -1090,7 +1092,7 @@ namespace LightInject.Interception
         /// <returns>The proxy <see cref="Type"/>.</returns>
         public Type CreateType(TypeBuilder typeBuilder)
         {
-            return typeBuilder.CreateTypeInfo().AsType();            
+            return typeBuilder.CreateTypeInfo().AsType();
         }
 
         private static ModuleBuilder GetModuleBuilder()
@@ -1125,7 +1127,8 @@ namespace LightInject.Interception
         private static readonly MethodInfo InterceptorInvokeMethod;
         private static readonly MethodInfo GetTargetMethodInfoMethod;
         private static readonly MethodInfo MonitorEnterMethod;
-        private static readonly MethodInfo MonitorExitMethod;        
+        private static readonly MethodInfo MonitorExitMethod;
+        private static readonly MethodInfo ObjectEqualsMethod;
         private readonly Dictionary<string, int> memberNames = new Dictionary<string, int>();
         private readonly ITypeBuilderFactory typeBuilderFactory;
 
@@ -1143,21 +1146,54 @@ namespace LightInject.Interception
 
         static ProxyBuilder()
         {
-            GetTargetMethod = typeof(IProxy).GetMethod("get_Target");
-            LazyInterceptorConstructor = typeof(Lazy<IInterceptor>).GetConstructor(new[] { typeof(Func<IInterceptor>) });
-            ObjectConstructor = typeof(object).GetConstructor(Type.EmptyTypes);
-            CreateMethodInterceptorMethod = typeof(MethodInterceptorFactory).GetMethod("CreateMethodInterceptor");
-            GetMethodFromHandleMethod = typeof(MethodBase).GetMethod("GetMethodFromHandle", new[] { typeof(RuntimeMethodHandle), typeof(RuntimeTypeHandle) });
-            GetTypeFromHandleMethod = typeof(Type).GetMethod("GetTypeFromHandle", BindingFlags.Public | BindingFlags.Static);
-            TargetMethodInfoConstructor = typeof(TargetMethodInfo).GetConstructors()[0];
-            OpenGenericTargetMethodInfoConstructor = typeof(OpenGenericTargetMethodInfo).GetConstructors()[0];
-            LazyInterceptorGetValueMethod = typeof(Lazy<IInterceptor>).GetProperty("Value").GetGetMethod();
-            TargetInvocationInfoConstructor = typeof(TargetInvocationInfo).GetConstructors()[0];
-            InterceptorInvokeMethod = typeof(IInterceptor).GetMethod("Invoke");
-            GetTargetMethodInfoMethod = typeof(OpenGenericTargetMethodInfo).GetMethod("GetTargetMethodInfo");            
-            MonitorEnterMethod =
-                typeof (Monitor).GetMethods().Where(m => m.Name == "Enter" && m.GetParameters().Length == 2).Single();
-            MonitorExitMethod = typeof(Monitor).GetMethod("Exit", new Type[] { typeof(object) });
+            GetTargetMethod = typeof(IProxy).GetTypeInfo().DeclaredProperties.Single(p => p.Name == "Target").GetMethod;
+            LazyInterceptorConstructor =
+                typeof(Lazy<IInterceptor>).GetTypeInfo()
+                    .DeclaredConstructors
+                    .Single(c => c.GetParameters()
+                                .Select(p => p.ParameterType)
+                                .SequenceEqual(new[] { typeof(Func<IInterceptor>) }));
+            ObjectConstructor =
+                typeof(object).GetTypeInfo()
+                    .DeclaredConstructors.Single(
+                        c => c.GetParameters().Select(p => p.ParameterType).SequenceEqual(new Type[0]));
+
+            ObjectEqualsMethod =
+                typeof(object).GetTypeInfo().DeclaredMethods.Single(m => m.Name == "Equals" && m.IsStatic);
+
+            CreateMethodInterceptorMethod = typeof(MethodInterceptorFactory).GetTypeInfo().DeclaredMethods
+                .Single(m => m.Name == "CreateMethodInterceptor");
+
+            GetMethodFromHandleMethod = typeof(MethodBase).GetTypeInfo().DeclaredMethods
+                .Single(
+                    m =>
+                        m.Name == "GetMethodFromHandle" &&
+                        m.GetParameters()
+                            .Select(p => p.ParameterType)
+                            .SequenceEqual(new[] { typeof(RuntimeMethodHandle), typeof(RuntimeTypeHandle) }));
+
+            GetTypeFromHandleMethod = typeof(Type).GetTypeInfo().DeclaredMethods
+                .Single(m => m.Name == "GetTypeFromHandle");
+
+
+            
+            TargetMethodInfoConstructor = typeof(TargetMethodInfo).GetTypeInfo().DeclaredConstructors.Single(m => !m.IsStatic);
+            OpenGenericTargetMethodInfoConstructor = typeof(OpenGenericTargetMethodInfo).GetTypeInfo().DeclaredConstructors.Single(m => !m.IsStatic);
+            LazyInterceptorGetValueMethod = typeof(Lazy<IInterceptor>).GetTypeInfo().DeclaredProperties
+                .Single(p => p.Name == "Value").GetMethod;
+
+            TargetInvocationInfoConstructor = typeof(TargetInvocationInfo).GetTypeInfo().DeclaredConstructors.Single(m => !m.IsStatic);
+            InterceptorInvokeMethod = typeof(IInterceptor).GetTypeInfo()
+                .DeclaredMethods.Single(m => m.Name == "Invoke");
+
+            GetTargetMethodInfoMethod = typeof(OpenGenericTargetMethodInfo).GetTypeInfo().DeclaredMethods
+                .Single(m => m.Name == "GetTargetMethodInfo");
+
+            MonitorEnterMethod = typeof(Monitor).GetTypeInfo().DeclaredMethods
+                .Single(m => m.Name == "Enter" && m.GetParameters().Length == 2);
+
+            MonitorExitMethod = typeof(Monitor).GetTypeInfo().DeclaredMethods
+                .Single(m => m.Name == "Exit" && m.GetParameters().Select(p => p.ParameterType).SequenceEqual(new[] { typeof(object) }));
         }
 
         /// <summary>
@@ -1188,7 +1224,7 @@ namespace LightInject.Interception
             ApplyTypeAttributes();
             DefineTargetField();
             DefineInitializerMethod();
-            DefineIsInitializedField();            
+            DefineIsInitializedField();
             DefineStaticTargetFactoryField();
             ImplementConstructor();
             DefineInterceptorFields();
@@ -1250,14 +1286,15 @@ namespace LightInject.Interception
             foreach (var interceptorInfo in definition.Interceptors)
             {
                 var fieldName = "InterceptorFactory" + interceptorInfo.Index;
-                var field = proxyType.GetField(fieldName);
+                var field = proxyType.GetTypeInfo().DeclaredFields.Single(f => f.Name == fieldName);
                 field.SetValue(null, interceptorInfo.InterceptorFactory);
             }
         }
 
         private static void AssignTargetFactory(Type proxyType, Delegate del)
         {
-            proxyType.GetField("TargetFactory").SetValue(null, del);
+            var field = proxyType.GetTypeInfo().DeclaredFields.Single(f => f.Name == "TargetFactory");
+            field.SetValue(null, del);
         }
 
         private static void PushInvocationInfoForNonGenericMethod(FieldInfo staticTargetMethodInfoField, ILGenerator il, ParameterInfo[] parameters, LocalBuilder argumentsArrayVariable)
@@ -1446,7 +1483,8 @@ namespace LightInject.Interception
             if (proxyDefinition.UseLazyTarget)
             {
                 il.Emit(OpCodes.Ldfld, targetField);
-                var getTargetValueMethod = targetField.FieldType.GetProperty("Value").GetGetMethod();
+                var getTargetValueMethod = targetField.FieldType.GetTypeInfo().DeclaredProperties
+                    .Single(p => p.Name == "Value").GetMethod;
                 il.Emit(OpCodes.Call, getTargetValueMethod);
             }
             else
@@ -1479,15 +1517,15 @@ namespace LightInject.Interception
             var returnValueVariable = il.DeclareLocal(returnType);
             il.Emit(OpCodes.Stloc, returnValueVariable);
             var lazyTargetType = typeof(Lazy<>).MakeGenericType(proxyDefinition.TargetType);
-            var getValueMethod = lazyTargetType.GetMethod("get_Value");
+            var getValueMethod = lazyTargetType.GetTypeInfo().DeclaredProperties
+                .Single(p => p.Name == "Value").GetMethod;
             il.Emit(OpCodes.Ldarg_0);
             il.Emit(OpCodes.Ldfld, targetField);
             il.Emit(OpCodes.Callvirt, getValueMethod);
-            var equalsMethod = typeof(object).GetMethod("Equals", BindingFlags.Static | BindingFlags.Public);
             var returnProxyLabel = il.DefineLabel();
             var returnReturnValueLabel = il.DefineLabel();
             il.Emit(OpCodes.Ldloc, returnValueVariable);
-            il.Emit(OpCodes.Call, equalsMethod);
+            il.Emit(OpCodes.Call, ObjectEqualsMethod);
             il.Emit(OpCodes.Ldc_I4_0);
             il.Emit(OpCodes.Ceq);
             il.Emit(OpCodes.Brfalse, returnProxyLabel);
@@ -1501,7 +1539,7 @@ namespace LightInject.Interception
 
         private IEnumerable<PropertyInfo> GetTargetProperties()
         {
-            return proxyDefinition.TargetType.GetProperties();
+            return proxyDefinition.TargetType.GetTypeInfo().DeclaredProperties;
         }
 
         private void ImplementConstructor()
@@ -1529,12 +1567,11 @@ namespace LightInject.Interception
 
         private void ImplementAllConstructorsFromBaseClass()
         {
-            var constructors = proxyDefinition.TargetType.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).ToArray();
-          
+            var constructors = proxyDefinition.TargetType.GetTypeInfo().DeclaredConstructors.Where(c => !c.IsStatic).ToArray();
 
             foreach (var constructorInfo in constructors)
             {
-                
+
                 MethodAttributes methodAttributes = constructorInfo.Attributes | MethodAttributes.Public;
                 CallingConventions callingConvention = constructorInfo.CallingConvention;
                 Type[] parameterTypes = constructorInfo.GetParameters().Select(p => p.ParameterType).ToArray();
@@ -1571,12 +1608,12 @@ namespace LightInject.Interception
                 generator.Emit(OpCodes.Call, constructorInfo);
 
 
-              
 
-                
+
+
                 CallInitializeMethod(generator);
                 generator.Emit(OpCodes.Ret);
-            }           
+            }
         }
 
         private void ImplementProperties()
@@ -1591,13 +1628,13 @@ namespace LightInject.Interception
             foreach (var property in targetProperties)
             {
                 var propertyBuilder = GetPropertyBuilder(property);
-                MethodInfo setMethod = property.GetSetMethod();
+                MethodInfo setMethod = property.SetMethod;
                 if (setMethod != null)
                 {
                     propertyBuilder.SetSetMethod(ImplementMethod(setMethod));
                 }
 
-                MethodInfo getMethod = property.GetGetMethod();
+                MethodInfo getMethod = property.GetMethod;
 
                 if (getMethod != null)
                 {
@@ -1618,16 +1655,16 @@ namespace LightInject.Interception
             foreach (var targetEvent in targetEvents)
             {
                 var eventBuilder = GetEventBuilder(targetEvent);
-                MethodInfo addMethod = targetEvent.GetAddMethod();
+                MethodInfo addMethod = targetEvent.AddMethod;
                 eventBuilder.SetAddOnMethod(ImplementMethod(addMethod));
-                MethodInfo removeMethod = targetEvent.GetRemoveMethod();
+                MethodInfo removeMethod = targetEvent.RemoveMethod;
                 eventBuilder.SetRemoveOnMethod(ImplementMethod(removeMethod));
             }
         }
 
         private IEnumerable<EventInfo> GetTargetEvents()
         {
-            return proxyDefinition.TargetType.GetEvents().ToArray();
+            return proxyDefinition.TargetType.GetTypeInfo().DeclaredEvents.ToArray();
         }
 
         private PropertyBuilder GetPropertyBuilder(PropertyInfo property)
@@ -1650,7 +1687,8 @@ namespace LightInject.Interception
 
         private Delegate CreateTypedInstanceDelegate(Func<object> targetFactory, Type targetType)
         {
-            var openGenericMethod = GetType().GetMethod("CreateGenericTargetFactory", BindingFlags.NonPublic | BindingFlags.Static);
+            var openGenericMethod = typeof(ProxyBuilder).GetTypeInfo().DeclaredMethods
+                .Single(m => m.Name == "CreateGenericTargetFactory");
             var closedGenericMethod = openGenericMethod.MakeGenericMethod(targetType);
             return (Delegate)closedGenericMethod.Invoke(this, new object[] { targetFactory });
         }
@@ -1682,7 +1720,7 @@ namespace LightInject.Interception
 
             if (proxyDefinition.TargetType.GetTypeInfo().IsClass)
             {
-                il.Emit(OpCodes.Ldarg_0);                
+                il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Callvirt, ensureInitializedMethodBuilder);
             }
 
@@ -1802,7 +1840,8 @@ namespace LightInject.Interception
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldfld, targetField);
                 var lazyTargetType = typeof(Lazy<>).MakeGenericType(proxyDefinition.TargetType);
-                var getValueMethod = lazyTargetType.GetMethod("get_Value");
+                var getValueMethod = lazyTargetType.GetTypeInfo().DeclaredProperties
+                    .Single(p => p.Name == "Value").GetMethod;
                 il.Emit(OpCodes.Callvirt, getValueMethod);
                 il.Emit(OpCodes.Brfalse, endif);
                 il.Emit(OpCodes.Ldarg_0);
@@ -1824,13 +1863,13 @@ namespace LightInject.Interception
                 PushArguments(il, targetMethod);
                 Call(il, targetMethod);
 
-                if (targetMethod.ReturnType.IsAssignableFrom(proxyDefinition.TargetType))
+                if (targetMethod.ReturnType.GetTypeInfo().IsAssignableFrom(proxyDefinition.TargetType.GetTypeInfo()))
                 {
                     PushProxyInstanceIfReturnValueEqualsTargetInstance(il, targetMethod.ReturnType);
                 }
                 Return(il);
             }
-            
+
             return methodBuilder;
         }
 
@@ -1898,13 +1937,13 @@ namespace LightInject.Interception
         private void DefineInitializerMethodForClassProxy()
         {
             initializerMethodBuilder = typeBuilder.DefineMethod(
-                "InitializeProxy", MethodAttributes.Private | MethodAttributes.HideBySig, typeof(void), Type.EmptyTypes);
+                "InitializeProxy", MethodAttributes.Private | MethodAttributes.HideBySig, typeof(void), new Type[0]);
         }
 
 
         private void DefineIsInitializedField()
         {
-            isInitializedField = typeBuilder.DefineField("runOnceInitializer", typeof (bool), FieldAttributes.Private);
+            isInitializedField = typeBuilder.DefineField("runOnceInitializer", typeof(bool), FieldAttributes.Private);
             lockField = typeBuilder.DefineField("runOnceInitializer", typeof(object), FieldAttributes.Private);
         }
 
@@ -1913,22 +1952,22 @@ namespace LightInject.Interception
             if (proxyDefinition.TargetType.GetTypeInfo().IsInterface)
             {
                 return;
-            }        
-    
+            }
+
 
             ensureInitializedMethodBuilder = typeBuilder.DefineMethod("EnsureInitialized", MethodAttributes.Private,
-                typeof (void), Type.EmptyTypes);
+                typeof(void), new Type[0]);
             var il = ensureInitializedMethodBuilder.GetILGenerator();
 
             Label enterlock = il.DefineLabel();
             Label callInitializeMethod = il.DefineLabel();
             Label endfinally = il.DefineLabel();
             Label end = il.DefineLabel();
-            LocalBuilder lockVariable = il.DeclareLocal(typeof (object));
-            LocalBuilder isInitializedVariable = il.DeclareLocal(typeof (bool));
+            LocalBuilder lockVariable = il.DeclareLocal(typeof(object));
+            LocalBuilder isInitializedVariable = il.DeclareLocal(typeof(bool));
 
             il.Emit(OpCodes.Ldarg_0);
-            il.Emit(OpCodes.Ldfld, isInitializedField);    
+            il.Emit(OpCodes.Ldfld, isInitializedField);
             il.Emit(OpCodes.Brfalse, enterlock);
             il.Emit(OpCodes.Ret);
             il.MarkLabel(enterlock);
@@ -1953,7 +1992,7 @@ namespace LightInject.Interception
             il.Emit(OpCodes.Ldarg_0);
             il.Emit(OpCodes.Ldc_I4_1);
             il.Emit(OpCodes.Stfld, isInitializedField);
-            il.Emit(OpCodes.Leave, end);            
+            il.Emit(OpCodes.Leave, end);
             il.BeginFinallyBlock();
 
             il.Emit(OpCodes.Ldloc, isInitializedVariable);
@@ -1992,7 +2031,7 @@ namespace LightInject.Interception
 
         private void ImplementParameterlessConstructor()
         {
-            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, Type.EmptyTypes);
+            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, new Type[0]);
             ILGenerator il = constructorBuilder.GetILGenerator();
             CallObjectConstructor(il);
             CallInitializeMethodWithStaticTargetFactory(il);
@@ -2016,15 +2055,20 @@ namespace LightInject.Interception
         private ConstructorInfo GetLazyConstructorForTargetType()
         {
             Type targetFieldType = typeof(Lazy<>).MakeGenericType(proxyDefinition.TargetType);
-            var lazyConstructor = targetFieldType.GetConstructor(new[] { targetFactoryField.FieldType });
+            var lazyConstructor = targetFieldType.GetTypeInfo().DeclaredConstructors
+                .Single(
+                    c =>
+                        c.GetParameters()
+                            .Select(p => p.ParameterType)
+                            .SequenceEqual(new[] { targetFactoryField.FieldType }));
             return lazyConstructor;
         }
 
         private void ImplementConstructorWithTargetParameter()
         {
-            const MethodAttributes Attributes = MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName
+            const MethodAttributes attributes = MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName
                                                 | MethodAttributes.RTSpecialName;
-            var constructorBuilder = typeBuilder.DefineConstructor(Attributes, CallingConventions.Standard, new[] { proxyDefinition.TargetType });
+            var constructorBuilder = typeBuilder.DefineConstructor(attributes, CallingConventions.Standard, new[] { proxyDefinition.TargetType });
 
             ILGenerator il = constructorBuilder.GetILGenerator();
             il.Emit(OpCodes.Ldarg_0);
@@ -2073,7 +2117,8 @@ namespace LightInject.Interception
             {
                 if (proxyDefinition.UseLazyTarget)
                 {
-                    var getTargetValueMethod = targetField.FieldType.GetProperty("Value").GetGetMethod();
+                    var getTargetValueMethod = targetField.FieldType.GetTypeInfo().DeclaredProperties
+                        .Single(p => p.Name == "Value").GetMethod;
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldfld, targetField);
                     il.Emit(OpCodes.Call, getTargetValueMethod);
@@ -2117,7 +2162,7 @@ namespace LightInject.Interception
                 {
                     methodAttributes = targetMethod.Attributes ^ MethodAttributes.Abstract;
                 }
-                
+
 
                 //methodAttributes = targetMethod.Attributes;
                 methodAttributes &= ~MethodAttributes.VtableLayoutMask;
@@ -2217,9 +2262,9 @@ namespace LightInject.Interception
         private readonly IInterceptor targetInterceptor;
 
         private static readonly MethodInfo OpenGenericInvokeAsyncMethod;
-        
+
         private static readonly ConcurrentDictionary<Type, Func<object, object[], object>> InvokeAsyncDelegates =
-            new ConcurrentDictionary<Type, Func<object, object[], object>>(); 
+            new ConcurrentDictionary<Type, Func<object, object[], object>>();
 
         private static readonly ConcurrentDictionary<Type, TaskType> TaskTypes =
             new ConcurrentDictionary<Type, TaskType>();
@@ -2248,7 +2293,7 @@ namespace LightInject.Interception
             Type returnType = invocationInfo.Method.ReturnType;
 
             TaskType taskType = GetTaskType(returnType);
-           
+
             if (taskType == TaskType.Task)
             {
                 return InvokeAsync(invocationInfo);
@@ -2256,7 +2301,7 @@ namespace LightInject.Interception
 
             if (taskType == TaskType.TaskOfT)
             {
-                return GetInvokeAsyncDelegate(returnType)(this, new object[] {invocationInfo});                                   
+                return GetInvokeAsyncDelegate(returnType)(this, new object[] { invocationInfo });
             }
 
             return targetInterceptor.Invoke(invocationInfo);
@@ -2303,11 +2348,11 @@ namespace LightInject.Interception
         {
             return returnType == typeof(Task);
         }
-        
+
         private static MethodInfo CreateClosedGenericInvokeMethod(Type returnType)
         {
             return OpenGenericInvokeAsyncMethod.MakeGenericMethod(
-                        returnType.GetGenericArguments());
+                        returnType.GetTypeInfo().GenericTypeArguments);
         }
 
         /// <summary>
@@ -2331,7 +2376,7 @@ namespace LightInject.Interception
         {
             return (Task<T>)invocationInfo.Proceed();
         }
-        
+
         private enum TaskType
         {
             None,
