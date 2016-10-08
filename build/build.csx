@@ -22,8 +22,8 @@ Execute(() => PatchPackagesConfig(), "Patching packages config");
 Execute(() => InternalizeSourceVersions(), "Internalizing source versions");
 Execute(() => RestoreNuGetPackages(), "NuGet");
 Execute(() => BuildAllFrameworks(), "Building all frameworks");
-//Execute(() => RunAllUnitTests(), "Running unit tests");
-//Execute(() => AnalyzeTestCoverage(), "Analyzing test coverage");
+Execute(() => RunAllUnitTests(), "Running unit tests");
+Execute(() => AnalyzeTestCoverage(), "Analyzing test coverage");
 Execute(() => CreateNugetPackages(), "Creating NuGet packages");
 
 private void CreateNugetPackages()
@@ -147,8 +147,7 @@ private void RunUnitTests(string frameworkMoniker)
 }
 
 private void AnalyzeTestCoverage()
-{	
-	Execute(() => AnalyzeTestCoverage("NET45"), "Analyzing test coverage for NET45");
+{		
 	Execute(() => AnalyzeTestCoverage("NET46"), "Analyzing test coverage for NET46");
 }
 
