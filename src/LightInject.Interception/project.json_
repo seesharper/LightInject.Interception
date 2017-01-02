@@ -1,7 +1,7 @@
 {
   "version": "3.0.0.10",
   "dependencies": {
-    "LightInject" :  "5.0.0-RC1"
+    "LightInject" :  "4.1.4"
   },
   "frameworks": {   
     "netstandard1.1" : 

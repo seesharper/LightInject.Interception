@@ -13,7 +13,7 @@
         <copyright>Bernhard Richter</copyright>
         <tags>Ioc Dependency-Injection Inversion-of-Control LightInject Aspect-Oriented-Programming AOP Interception</tags>
         <dependencies>
-            <dependency id="LightInject.Source" version="5.0.0-RC1" />
+            <dependency id="LightInject.Source" version="4.1.5" />
         </dependencies>
     </metadata>
     <files>        
