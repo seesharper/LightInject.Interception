@@ -1,4 +1,4 @@
-[![AppVeyor](https://img.shields.io/appveyor/ci/seesharper/lightinject.interception.svg?maxAge=2592000)]()
+[![AppVeyor](https://img.shields.io/appveyor/ci/seesharper/lightinject-interception.svg?maxAge=2592000)]()
 [![NuGet](https://img.shields.io/nuget/v/LightInject.Interception.svg?maxAge=2592000)]()
 [![GitHub tag](https://img.shields.io/github/tag/seesharper/lightinject.interception.svg?maxAge=2592000)]()
 
