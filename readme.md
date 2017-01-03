@@ -1,3 +1,7 @@
+[![AppVeyor](https://img.shields.io/appveyor/ci/seesharper/lightinject.interception.svg?maxAge=2592000)]()
+[![NuGet](https://img.shields.io/nuget/v/LightInject.Interception.svg?maxAge=2592000)]()
+[![GitHub tag](https://img.shields.io/github/tag/seesharper/lightinject.interception.svg?maxAge=2592000)]()
+
 # Interception #
 
 **LightInject** supports [Aspect Oriented Programming](http://en.wikipedia.org/wiki/Aspect-oriented_programming) through proxy-based method interceptors. 
