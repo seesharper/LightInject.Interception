@@ -4,6 +4,7 @@ using Moq;
 
 namespace LightInject.Interception.Tests
 {
+    using System.Linq;
     using System.Reflection;
 
     using Xunit;
@@ -71,6 +72,21 @@ namespace LightInject.Interception.Tests
 
             Assert.Null(targetField);
         }
+
+        [Fact]
+        public void GetProxyType_InterceptedVirtualMethod_DefinesParameterName()
+        {
+            var proxyDefinition = new ProxyDefinition(typeof(ClassWithVirtualMethodTakingParameter));
+
+            proxyDefinition.Implement(() => new SampleInterceptor(), m => m.Name == "Execute");
+
+            Type proxyType = CreateProxyType(proxyDefinition);
+
+            var parameter = proxyType.GetMethod("Execute").GetParameters().Single();
+
+            Assert.Equal("id", parameter.Name);            
+        }
+
 
         [Fact]
         public void GetProxyType_AdditionalInterface_ImplementsInterface()

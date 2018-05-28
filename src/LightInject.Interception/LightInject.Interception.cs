@@ -2162,21 +2162,28 @@ namespace LightInject.Interception
                 {
                     methodAttributes = targetMethod.Attributes ^ MethodAttributes.Abstract;
                 }
-
-
-                //methodAttributes = targetMethod.Attributes;
+                
                 methodAttributes &= ~MethodAttributes.VtableLayoutMask;
             }
 
+            var targetMethodParameters = targetMethod.GetParameters();        
             MethodBuilder methodBuilder = typeBuilder.DefineMethod(
                                             methodName,
                                             methodAttributes,
                                             targetMethod.ReturnType,
-                                            targetMethod.GetParameters().Select(p => p.ParameterType).ToArray());
+                                            targetMethodParameters.Select(p => p.ParameterType).ToArray());
+
+           
 
             if (targetMethod.IsGenericMethod)
             {
                 DefineGenericParameters(targetMethod, methodBuilder);
+            }
+
+            for (int i = 0; i < targetMethodParameters.Length; i++)
+            {
+                var parameter = targetMethodParameters[i];
+                methodBuilder.DefineParameter(i + 1, parameter.Attributes, parameter.Name);
             }
 
             if (targetMethod.DeclaringType != proxyDefinition.TargetType && targetMethod.DeclaringType != typeof(object))
