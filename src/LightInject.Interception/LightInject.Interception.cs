@@ -2172,9 +2172,7 @@ namespace LightInject.Interception
                                             methodAttributes,
                                             targetMethod.ReturnType,
                                             targetMethodParameters.Select(p => p.ParameterType).ToArray());
-
            
-
             if (targetMethod.IsGenericMethod)
             {
                 DefineGenericParameters(targetMethod, methodBuilder);

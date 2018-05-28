@@ -1,12 +1,7 @@
 namespace LightInject.Interception.Tests
 {
     using System;
-    using System.Collections;
-    using System.Collections.Generic;
-    using System.Linq.Expressions;
-    using System.Runtime.InteropServices;
-    using System.Runtime.Remoting;
-
+    using System.Collections.Generic;   
     using LightInject.SampleLibrary;
     using Xunit;
 

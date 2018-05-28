@@ -1,3 +1,4 @@
+#if NET46
 namespace LightInject.Interception.Tests
 {
     using Xunit;
@@ -16,3 +17,4 @@ namespace LightInject.Interception.Tests
         }
     }
 }
+#endif

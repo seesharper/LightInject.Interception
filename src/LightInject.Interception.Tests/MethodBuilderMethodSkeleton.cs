@@ -1,3 +1,4 @@
+#if NET46
 namespace LightInject.Interception.Tests
 {
     using System;
@@ -90,3 +91,4 @@ namespace LightInject.Interception.Tests
         }
     }
 }
+#endif

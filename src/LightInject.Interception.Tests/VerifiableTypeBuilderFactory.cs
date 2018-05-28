@@ -1,11 +1,11 @@
+#if NET46
 namespace LightInject.Interception.Tests
 {
     using System;
     using System.IO;
     using System.Linq;
     using System.Reflection;
-    using System.Reflection.Emit;
-    using System.Threading;
+    using System.Reflection.Emit;   
 
     using AssemblyName = System.Reflection.AssemblyName;
 
@@ -50,3 +50,4 @@ namespace LightInject.Interception.Tests
 
    
 }
+#endif
