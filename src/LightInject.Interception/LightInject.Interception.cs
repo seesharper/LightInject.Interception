@@ -27,6 +27,7 @@
 ******************************************************************************/
 
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 [module: System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.ReadabilityRules", "SA1126:PrefixCallsCorrectly", Justification = "Reviewed")]
@@ -35,6 +36,7 @@ using System.Threading;
 [module: System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.MaintainabilityRules", "SA1403:FileMayOnlyContainASingleNamespace", Justification = "Extension methods must be visible")]
 [module: System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1633:FileMustHaveHeader", Justification = "Custom header.")]
 [module: System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1600:ElementsMustBeDocumented", Justification = "All public members are documented.")]
+[assembly: InternalsVisibleTo("LightInject.Interception.Test")]
 
 namespace LightInject
 {
@@ -42,11 +44,11 @@ namespace LightInject
     using System.Linq;
     using System.Reflection;
     using LightInject.Interception;
-
+    using System.Diagnostics.CodeAnalysis;
     /// <summary>
     /// Extends the <see cref="IServiceRegistry"/> interface by adding methods for 
     /// creating proxy-based decorators.
-    /// </summary>
+    /// </summary>    
     public static class InterceptionContainerExtensions
     {
         /// <summary>
@@ -172,6 +174,7 @@ namespace LightInject.Interception
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
+    using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Reflection;
     using System.Reflection.Emit;
@@ -2389,4 +2392,10 @@ namespace LightInject.Interception
             TaskOfT
         }
     }
+#if NETSTANDARD1_1 || NETSTANDARD2_0
+    public class ExcludeFromCodeCoverageAttribute : Attribute
+    {
+        
+    }
+#endif
 }

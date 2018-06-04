@@ -9,9 +9,13 @@
         <PackageLicenseUrl>http://opensource.org/licenses/MIT</PackageLicenseUrl>
         <Copyright>Bernhard Richter</Copyright>
         <PackageTags>Ioc Dependency-Injection Inversion-of-Control LightInject Aspect-Oriented-Programming AOP Interception</PackageTags>
-        <Description>An extension to the LightInject service container that enables AOP(Aspect Oriented Programming) through method interception.</Description>
-        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <Description>An extension to the LightInject service container that enables AOP(Aspect Oriented Programming) through method interception.</Description>        
         <DebugType>Full</DebugType>
+        <CommitHash Condition="'$(CommitHash)' == ''">Unknown Commit</CommitHash>
+        <InformationalVersion>$(Version) ($(CommitHash))</InformationalVersion>
+        <AssemblyVersion>$(Version)</AssemblyVersion>
+        <Product>$(MSBuildProjectName) ($(TargetFramework))</Product>
+        <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     </PropertyGroup>
     <ItemGroup>
       <PackageReference Include="LightInject" Version="5.1.3" />
@@ -20,5 +24,8 @@
     <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.1' OR '$(TargetFramework)' == 'netstandard2.0'">
         <PackageReference Include="System.Reflection.Emit" Version="4.3.0" />
         <PackageReference Include="System.Reflection.Emit.Lightweight" Version="4.3.0" />
+    </ItemGroup>
+    <ItemGroup>
+      <Folder Include="Properties\" />
     </ItemGroup>
 </Project>
