@@ -1,10 +1,10 @@
+#if NET46
 namespace LightInject.Interception.Tests
 {
     using System;
     using System.IO;
     using System.Reflection;
-    using System.Reflection.Emit;
-       
+    using System.Reflection.Emit;  
     public class InterceptionMethodBuilderMethodSkeleton : IDynamicMethodSkeleton
     {
         private readonly string outputPath;
@@ -88,3 +88,4 @@ namespace LightInject.Interception.Tests
         }
     }
 }
+#endif

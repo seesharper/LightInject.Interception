@@ -17,6 +17,15 @@ namespace LightInject.Interception.Tests
         }
     }
 
+    public class ClassWithVirtualMethodTakingParameter
+    {
+        public virtual int Execute(string id)
+        {
+            return 42;
+        }
+    }
+
+
     public class ClassWithVirtualAndNonVirtualMethod
     {
         public virtual void VirtualMethod()
