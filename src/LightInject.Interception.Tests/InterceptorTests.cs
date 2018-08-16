@@ -61,6 +61,26 @@ namespace LightInject.Interception.Tests
 
             firstInterceptorMock.Verify(i => i.Invoke(It.Is<IInvocationInfo>(ii => ii.Method == method)));
         }
+        
+        [Fact]
+        public void Execute_CompositeInterceptor_PassesMethodInvocationTargetToInterceptor()
+        {
+            var firstInterceptorMock = new Mock<IInterceptor>();
+            var secondInterceptorMock = new Mock<IInterceptor>();
+            var invocationMock = new Mock<IInvocationInfo>();
+            var method = typeof(IMethodWithNoParameters).GetMethods()[0];
+
+            invocationMock.SetupGet(i => i.MethodInvocationTarget).Returns(method);
+            var compositeInterceptor = new CompositeInterceptor(new[]
+                                                                    {
+                                                                        new Lazy<IInterceptor>(() => firstInterceptorMock.Object),
+                                                                        new Lazy<IInterceptor>(() => secondInterceptorMock.Object),
+                                                                    });
+
+            compositeInterceptor.Invoke(invocationMock.Object);
+
+            firstInterceptorMock.Verify(i => i.Invoke(It.Is<IInvocationInfo>(ii => ii.MethodInvocationTarget == method)));
+        }        
 
         [Fact]
         public void Execute_CompositeInterceptor_PassesArgumentsToInterceptor()
