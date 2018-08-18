@@ -259,7 +259,7 @@ namespace LightInject.Interception.Tests
 
             interceptorMock.Verify(
                 i => i.Invoke(
-                    It.Is<IInvocationInfo>(ii => ii.Method == expectedMethod && ii.MethodInvocationTarget == expectedMethodInvocationTarget)));
+                    It.Is<IInvocationInfo>(ii => ii.Method == expectedMethod && ii.TargetMethod == expectedMethodInvocationTarget)));
         }
         
         [Fact]
@@ -272,7 +272,7 @@ namespace LightInject.Interception.Tests
             instance.Execute();
 
             interceptorMock.Verify(
-                i => i.Invoke(It.Is<IInvocationInfo>(ii => ii.Method == expectedMethod && ii.MethodInvocationTarget == expectedMethod)));
+                i => i.Invoke(It.Is<IInvocationInfo>(ii => ii.Method == expectedMethod && ii.TargetMethod == expectedMethod)));
         }
         
         [Fact]
@@ -287,7 +287,7 @@ namespace LightInject.Interception.Tests
 
             interceptorMock.Verify(
                 i => i.Invoke(
-                    It.Is<IInvocationInfo>(ii => ii.Method == expectedMethod && ii.MethodInvocationTarget == expectedMethodInvocationTarget)));
+                    It.Is<IInvocationInfo>(ii => ii.Method == expectedMethod && ii.TargetMethod == expectedMethodInvocationTarget)));
         }        
         
         [Fact]
@@ -300,7 +300,7 @@ namespace LightInject.Interception.Tests
             instance.Execute<int>(0);
 
             interceptorMock.Verify(
-                i => i.Invoke(It.Is<IInvocationInfo>(ii => ii.Method == expectedMethod && ii.MethodInvocationTarget == expectedMethod)));
+                i => i.Invoke(It.Is<IInvocationInfo>(ii => ii.Method == expectedMethod && ii.TargetMethod == expectedMethod)));
         }
        
         [Fact]

@@ -204,7 +204,7 @@ namespace LightInject.Interception
         /// <summary>
         /// If the proxy is an interface, gets the <see cref="MethodInfo"/> currently being invoked on the target class. 
         /// </summary>
-        MethodInfo MethodInvocationTarget { get; }
+        MethodInfo TargetMethod { get; }
 
         /// <summary>
         /// Gets the <see cref="IProxy"/> instance that intercepted the method call.
@@ -675,7 +675,7 @@ namespace LightInject.Interception
         /// <summary>
         /// If the proxy is an interface, gets the <see cref="MethodInfo"/> currently being invoked on the target class. 
         /// </summary>
-        public MethodInfo MethodInvocationTarget
+        public MethodInfo TargetMethod
         {
             get
             {
@@ -749,11 +749,11 @@ namespace LightInject.Interception
         /// <summary>
         /// If the proxy is an interface, gets the <see cref="MethodInfo"/> currently being invoked on the target class. 
         /// </summary>        
-        public MethodInfo MethodInvocationTarget
+        public MethodInfo TargetMethod
         {
             get
             {
-                return nextInvocationInfo.MethodInvocationTarget;
+                return nextInvocationInfo.TargetMethod;
             }
         }        
 
