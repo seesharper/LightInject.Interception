@@ -225,6 +225,14 @@ namespace LightInject.Interception.Tests
     {
         void Execute<T>(T value);
     }
+    
+    public class MethodWithGenericParameter: IMethodWithGenericParameter
+    {
+        public void Execute<T>(T value)
+        {
+            
+        }
+    }
 
     public interface IDerivedFromGenericMethod : IMethodWithGenericParameter
     {

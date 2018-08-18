@@ -246,6 +246,62 @@ namespace LightInject.Interception.Tests
 
             interceptorMock.Verify(i => i.Invoke(It.Is<IInvocationInfo>(ii => ii.Method == expectedMethod)));
         }
+        
+        [Fact]
+        public void Execute_NonGenericMethod_PassesMethodInvocationTargetInfoToInterceptorWhenProxyIsInterface()
+        {
+            var interceptorMock = new Mock<IInterceptor>();
+            var instance = CreateProxy<IClassWithOneMethod, ClassWithOneMethod>(interceptorMock.Object, "FirstMethod");
+            MethodInfo expectedMethod = typeof(IClassWithOneMethod).GetMethod("FirstMethod");
+            MethodInfo expectedMethodInvocationTarget = typeof(ClassWithOneMethod).GetMethod("FirstMethod");
+            
+            instance.FirstMethod();
+
+            interceptorMock.Verify(
+                i => i.Invoke(
+                    It.Is<IInvocationInfo>(ii => ii.Method == expectedMethod && ii.MethodInvocationTarget == expectedMethodInvocationTarget)));
+        }
+        
+        [Fact]
+        public void Execute_NonGenericMethod_PassesMethodInvocationTargetInfoToInterceptorWhenProxyIsNotInterface()
+        {
+            var interceptorMock = new Mock<IInterceptor>();
+            var instance = CreateProxy<IMethodWithNoParameters>(interceptorMock.Object);
+            MethodInfo expectedMethod = typeof(IMethodWithNoParameters).GetMethod("Execute");
+
+            instance.Execute();
+
+            interceptorMock.Verify(
+                i => i.Invoke(It.Is<IInvocationInfo>(ii => ii.Method == expectedMethod && ii.MethodInvocationTarget == expectedMethod)));
+        }
+        
+        [Fact]
+        public void Execute_GenericMethod_PassesMethodInvocationTargetInfoToInterceptorWhenProxyIsInterface()
+        {
+            var interceptorMock = new Mock<IInterceptor>();
+            var instance = CreateProxy<IMethodWithGenericParameter, MethodWithGenericParameter>(interceptorMock.Object, "Execute");
+            MethodInfo expectedMethod = typeof(IMethodWithGenericParameter).GetMethod("Execute").MakeGenericMethod(typeof(int));
+            MethodInfo expectedMethodInvocationTarget = typeof(MethodWithGenericParameter).GetMethod("Execute").MakeGenericMethod(typeof(int));
+
+            instance.Execute<int>(0);
+
+            interceptorMock.Verify(
+                i => i.Invoke(
+                    It.Is<IInvocationInfo>(ii => ii.Method == expectedMethod && ii.MethodInvocationTarget == expectedMethodInvocationTarget)));
+        }        
+        
+        [Fact]
+        public void Execute_GenericMethod_PassesMethodInvocationTargetInfoToInterceptorWhenProxyIsNotInterface()
+        {
+            var interceptorMock = new Mock<IInterceptor>();
+            var instance = CreateProxy<IMethodWithGenericParameter>(interceptorMock.Object);
+            MethodInfo expectedMethod = typeof(IMethodWithGenericParameter).GetMethod("Execute").MakeGenericMethod(typeof(int));
+
+            instance.Execute<int>(0);
+
+            interceptorMock.Verify(
+                i => i.Invoke(It.Is<IInvocationInfo>(ii => ii.Method == expectedMethod && ii.MethodInvocationTarget == expectedMethod)));
+        }
        
         [Fact]
         public void Execute_NonGenericMethod_PassesProxyInstanceToInterceptor()
@@ -914,6 +970,14 @@ namespace LightInject.Interception.Tests
             Type proxyType = CreateProxyBuilder().GetProxyType(proxyDefinition);
             return (T)Activator.CreateInstance(proxyType, (object)null);
         }
+        
+        private T1 CreateProxy<T1, T2>(IInterceptor interceptor, string methodName)
+        {
+            var proxyDefinition = new ProxyDefinition(typeof(T1), typeof(T2), false);
+            proxyDefinition.Implement(() => interceptor, info => info.Name == methodName);
+            Type proxyType = CreateProxyBuilder().GetProxyType(proxyDefinition);
+            return (T1)Activator.CreateInstance(proxyType, (object)null);
+        }        
 
         private T CreateProxy<T>(T target)
         {
