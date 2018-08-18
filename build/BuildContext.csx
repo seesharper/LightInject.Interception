@@ -8,7 +8,6 @@ var root = FileUtils.GetScriptFolder();
 var solutionFolder = Path.Combine(root,"..","src");
 var projectFolder = Path.Combine(root, "..", "src", "LightInject.Interception");
 
-
 var testProjectFolder = Path.Combine(root, "..", "src", "LightInject.Interception.Tests");
 
 var pathToTestAssembly = Path.Combine(testProjectFolder, "bin","release", "net46", "LightInject.Interception.Tests.dll");
