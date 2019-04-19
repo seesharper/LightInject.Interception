@@ -1807,8 +1807,17 @@ namespace LightInject.Interception
                 
             if (proxyDefinition.TargetType.GetTypeInfo().IsInterface && proxyDefinition.ImplementingType != null)
             {
-                targetInvocationMethod = proxyDefinition.ImplementingType.GetTypeInfo().DeclaredMethods.FirstOrDefault(m => m.Name == targetMethod.Name);
-            }            
+                var type = proxyDefinition.ImplementingType;
+
+                while (type != null)
+                {
+                    targetInvocationMethod = type.GetTypeInfo().DeclaredMethods.FirstOrDefault(m => m.Name == targetMethod.Name);
+                    if (targetInvocationMethod != null)
+                        break;
+
+                    type = type.GetTypeInfo().BaseType;
+                }
+            }
 
             if (targetMethod.IsGenericMethod)
             {
