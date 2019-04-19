@@ -18,6 +18,8 @@ namespace LightInject.Interception.Tests
             var ex = Record.Exception(() => test = container.GetInstance<IIssue21>());
             Assert.Null(ex);
             Assert.NotNull(test);
+
+            test.InterceptMe();
         }
 
         private static void DefineProxyType(ProxyDefinition definition, IInterceptor myInterceptor)
