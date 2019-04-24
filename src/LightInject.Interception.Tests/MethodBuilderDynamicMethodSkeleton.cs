@@ -4,7 +4,7 @@ namespace LightInject.Interception.Tests
     using System;
     using System.IO;
     using System.Reflection;
-    using System.Reflection.Emit;  
+    using System.Reflection.Emit;
     public class InterceptionMethodBuilderMethodSkeleton : IDynamicMethodSkeleton
     {
         private readonly string outputPath;
@@ -67,7 +67,6 @@ namespace LightInject.Interception.Tests
             Type type = typeBuilder.CreateType();
             dynamicMethod = type.GetMethod("DynamicMethod");
             assemblyBuilder.Save(fileName);
-            Console.WriteLine("Saving file " + fileName);
             AssemblyAssert.IsValidAssembly(outputPath);
         }
 
@@ -81,7 +80,6 @@ namespace LightInject.Interception.Tests
             Type type = typeBuilder.CreateType();
             dynamicMethod = type.GetMethod("DynamicMethod");
             assemblyBuilder.Save(fileName);
-            Console.WriteLine("Saving file " + fileName);
             AssemblyAssert.IsValidAssembly(outputPath);
             var del = Delegate.CreateDelegate(typeof(Func<object, object[], object>), dynamicMethod);
             return (Func<object, object[], object>)del;

@@ -15,7 +15,9 @@ namespace LightInject.Interception.Tests
             var dynamicMethodBuilder = new DynamicMethodBuilder();
             var field = typeof(DynamicMethodBuilder).GetField(
                 "methodSkeletonFactory", BindingFlags.Instance | BindingFlags.NonPublic);
-            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DynamicMethodAssembly.dll");
+
+            var path = Path.Combine(Path.GetDirectoryName(new Uri(typeof(DynamicMethodBuilderVerificationTests).Assembly.CodeBase).LocalPath), "DynamicMethodAssembly.dll");
+
             Func<IDynamicMethodSkeleton> methodSkeletonFactory = () => new InterceptionMethodBuilderMethodSkeleton(path);
             field.SetValue(dynamicMethodBuilder, methodSkeletonFactory);
             return dynamicMethodBuilder;
