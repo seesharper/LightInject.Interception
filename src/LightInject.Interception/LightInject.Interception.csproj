@@ -11,7 +11,7 @@
     <Copyright>Bernhard Richter</Copyright>
     <PackageTags>Ioc Dependency-Injection Inversion-of-Control LightInject Aspect-Oriented-Programming AOP Interception</PackageTags>
     <Description>An extension to the LightInject service container that enables AOP(Aspect Oriented Programming) through method interception.</Description>
-    <DebugType>Full</DebugType>
+    <DebugType>Portable</DebugType>
     <CommitHash Condition="'$(CommitHash)' == ''">Unknown Commit</CommitHash>
     <InformationalVersion>$(Version) ($(CommitHash))</InformationalVersion>
     <AssemblyVersion>$(Version)</AssemblyVersion>

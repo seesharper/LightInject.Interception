@@ -1,0 +1,7 @@
+{
+    "coverage-gutters.lcovname": "../../build/Artifacts/TestCoverage/coverage.info",
+    "coverage-gutters.xmlname": "../../build/Artifacts/TestCoverage/coverage.opencover.xml",
+    "coverage-gutters.coverageReportFileName": "../../build/Artifacts/TestCoverage/**/index.htm",
+    "coverage-gutters.showLineCoverage": true,
+    "coverage-gutters.showRulerCoverage": true
+}
