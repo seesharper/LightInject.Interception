@@ -1,7 +1,7 @@
 namespace LightInject.Interception.Tests
 {
     using System;
-    using System.Collections.Generic;   
+    using System.Collections.Generic;
     using LightInject.SampleLibrary;
     using Xunit;
 
@@ -10,16 +10,16 @@ namespace LightInject.Interception.Tests
     [Collection("Interception")]
     public class ContainerInterceptionTests : TestBase
     {
-        [Fact]         
+        [Fact]
         public void Intercept_Service_ReturnsProxyInstance()
         {
             var container = new ServiceContainer();
             container.Register<IFoo, Foo>();
-            container.Intercept(sr => sr.ServiceType == typeof(IFoo), factory => new SampleInterceptor());            
-                      
+            container.Intercept(sr => sr.ServiceType == typeof(IFoo), factory => new SampleInterceptor());
+
             var instance = container.GetInstance<IFoo>();
 
-            Assert.IsAssignableFrom<IProxy>(instance);            
+            Assert.IsAssignableFrom<IProxy>(instance);
         }
 
         [Fact]
@@ -54,13 +54,13 @@ namespace LightInject.Interception.Tests
         [Fact]
         public void Intercept_Interceptor_DoesNotReturnProxyInstance()
         {
-            var container = new ServiceContainer();            
+            var container = new ServiceContainer();
             container.Register<IInterceptor, SampleInterceptor>();
             container.Intercept(sr => sr.ServiceType == typeof(IInterceptor), factory => factory.GetInstance<IInterceptor>());
             var instance = container.GetInstance<IInterceptor>();
-            
+
             Assert.IsNotType(typeof(IProxy), instance);
-        }               
+        }
 
         [Fact]
         public void Intercept_Service_PassesInvocationInfoToInterceptor()
@@ -80,30 +80,30 @@ namespace LightInject.Interception.Tests
         [Fact]
         public virtual void GetInstance_InterceptorAfterDecorator_ReturnsProxy()
         {
-            var container = CreateContainer();            
+            var container = CreateContainer();
             container.Register<IFoo, Foo>();
             container.Decorate(typeof(IFoo), typeof(FooDecorator));
             container.Decorate(typeof(IFoo), typeof(AnotherFooDecorator));
             container.Intercept(registration => registration.ServiceType == typeof(IFoo), factory => null);
 
             var instance = container.GetInstance<IFoo>();
-            Assert.IsAssignableFrom<IProxy>(instance);            
+            Assert.IsAssignableFrom<IProxy>(instance);
         }
 
         [Fact]
         public void GetInstance_ServiceWithConstructorArguments_ReturnsProxy()
         {
-            var container = new ServiceContainer();                                               
+            var container = new ServiceContainer();
             container.Register<int, IMethodWithValueTypeReturnValue>((factory, i) => new ClassWithConstructorArguments());
             container.Intercept(sr => sr.ServiceType == typeof(IMethodWithValueTypeReturnValue), info => new SampleInterceptor());
-                        
+
             var instance = container.GetInstance<int, IMethodWithValueTypeReturnValue>(42);
             instance.Execute();
 
             Assert.IsAssignableFrom<IProxy>(instance);
         }
 
-     
+
 
         [Fact]
         public void Intercept_Method_InvokesInterceptorOnlyForMatchingMethods()
@@ -129,11 +129,10 @@ namespace LightInject.Interception.Tests
         public void GetInstance_InterceptedClass_ReturnsClassProxy()
         {
             var container = new ServiceContainer();
-            container.Register<ClassWithVirtualMethod>();            
+            container.Register<ClassWithVirtualMethod>();
             container.Intercept(sr => sr.ServiceType == typeof(ClassWithVirtualMethod), factory => new SampleInterceptor());
             var instance = container.GetInstance<ClassWithVirtualMethod>();
             var test = instance.Execute();
-            Console.WriteLine(test);
             Assert.IsAssignableFrom<IProxy>(instance);
         }
 
@@ -146,8 +145,7 @@ namespace LightInject.Interception.Tests
             container.Intercept(sr => sr.ServiceType == typeof(ClassWithConstructor), factory => new SampleInterceptor());
             var instance = container.GetInstance<ClassWithConstructor>();
             var test = instance.Execute();
-            Console.WriteLine(test);
-            Assert.IsAssignableFrom<IProxy>(instance);            
+            Assert.IsAssignableFrom<IProxy>(instance);
         }
 
         [Fact]
@@ -156,9 +154,9 @@ namespace LightInject.Interception.Tests
             var container = new ServiceContainer();
             container.Register(factory => new ClassWithConstructor("SomeValue"));
             container.Intercept(sr => sr.ServiceType == typeof(ClassWithConstructor), factory => null);
-            Assert.Throws<InvalidOperationException>(() => container.GetInstance<ClassWithConstructor>());            
+            Assert.Throws<InvalidOperationException>(() => container.GetInstance<ClassWithConstructor>());
         }
-        
+
 
         [Fact]
         public void GetInstance_InterceptedClassWithUndeterminableImplementingType_ThrowsException()
@@ -167,7 +165,7 @@ namespace LightInject.Interception.Tests
             container.Register(factory => CreateClassWithVirtualMethod());
             container.RegisterInstance("SomeValue");
             container.Intercept(sr => sr.ServiceType == typeof(ClassWithVirtualMethod), factory => new SampleInterceptor());
-            Assert.Throws<InvalidOperationException>(() => container.GetInstance<ClassWithVirtualMethod>());            
+            Assert.Throws<InvalidOperationException>(() => container.GetInstance<ClassWithVirtualMethod>());
         }
 
         [Fact]
@@ -176,7 +174,7 @@ namespace LightInject.Interception.Tests
             var container = new ServiceContainer();
             container.RegisterInstance(new ClassWithVirtualMethod());
             container.Intercept(sr => sr.ServiceType == typeof(ClassWithVirtualMethod), factory => new SampleInterceptor());
-            Assert.Throws<InvalidOperationException>(() => container.GetInstance<ClassWithVirtualMethod>());            
+            Assert.Throws<InvalidOperationException>(() => container.GetInstance<ClassWithVirtualMethod>());
         }
 
         [Fact]
@@ -186,12 +184,12 @@ namespace LightInject.Interception.Tests
             container.Register<ClassImplementingDisposable>();
 
             container.Intercept(
-                sr => sr.ServiceType == typeof (ClassImplementingDisposable),
+                sr => sr.ServiceType == typeof(ClassImplementingDisposable),
                 (factory, definition) => definition.Implement(() => new SampleInterceptor(), m => m.IsDeclaredBy(definition.TargetType) && m.IsPublic));
 
             var instance = container.TryGetInstance<ClassImplementingDisposable>();
 
-            Assert.IsAssignableFrom(typeof (IProxy), instance);
+            Assert.IsAssignableFrom(typeof(IProxy), instance);
 
         }
 
@@ -205,9 +203,9 @@ namespace LightInject.Interception.Tests
             var bar = container.GetInstance<Bar>();
             var foo = container.GetInstance<FooWithConcreteDependency>();
 
-            Assert.IsAssignableFrom(typeof (IProxy), bar);
-            Assert.IsAssignableFrom(typeof (Bar), bar);           
-            Assert.IsAssignableFrom(typeof (FooWithConcreteDependency), foo);
+            Assert.IsAssignableFrom(typeof(IProxy), bar);
+            Assert.IsAssignableFrom(typeof(Bar), bar);
+            Assert.IsAssignableFrom(typeof(FooWithConcreteDependency), foo);
 
         }
 

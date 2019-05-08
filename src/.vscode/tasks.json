@@ -1,0 +1,63 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "command": "dotnet",
+      "args": ["build", "/property:GenerateFullPaths=true"],
+      "type": "shell",
+      "group": "build",
+      "presentation": {
+        "reveal": "always"
+      },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "rebuild",
+      "command": "dotnet",
+      "args": ["build", "--no-incremental", "/property:GenerateFullPaths=true"],
+      "type": "shell",
+      "group": "build",
+      "presentation": {
+        "reveal": "always"
+      },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "test",
+      "command": "dotnet",
+      "type": "process",
+      "args": [
+        "test",
+        "-c",
+        "release",
+        "-f",
+        "netcoreapp2.0",
+        "${workspaceFolder}/LightInject.Interception.Tests/LightInject.Interception.Tests.csproj"
+      ],
+      "problemMatcher": "$msCompile",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "test with coverage",
+      "command": "dotnet",
+      "type": "process",
+      "args": [
+        "script",
+        "${workspaceFolder}/../build/build.csx",
+        "testcoverage"
+      ],
+      "problemMatcher": "$msCompile",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    }
+  ]
+}

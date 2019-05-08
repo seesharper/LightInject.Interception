@@ -9,7 +9,7 @@ namespace LightInject.Interception.Tests
     {
         internal static IServiceContainer CreateContainerForAssemblyVerification()
         {
-            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DynamicAssembly.dll");
+            var path = Path.Combine(Path.GetDirectoryName(new Uri(typeof(VerificationContainerFactory).Assembly.CodeBase).LocalPath), "DynamicAssembly.dll");            
             if (File.Exists(path))
             {
                 File.Delete(path);

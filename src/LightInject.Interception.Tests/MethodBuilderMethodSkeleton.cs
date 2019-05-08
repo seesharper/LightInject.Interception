@@ -46,7 +46,6 @@ namespace LightInject.Interception.Tests
             methodBuilder.GetILGenerator().Emit(OpCodes.Ret);
             var dynamicType = typeBuilder.CreateType();
             assemblyBuilder.Save(fileName);
-            Console.WriteLine("Saving file " + fileName);
             AssemblyAssert.IsValidAssembly(outputPath);
             MethodInfo methodInfo = dynamicType.GetMethod("DynamicMethod", BindingFlags.Static | BindingFlags.Public);
             return Delegate.CreateDelegate(delegateType, methodInfo);
@@ -57,7 +56,6 @@ namespace LightInject.Interception.Tests
             methodBuilder.GetILGenerator().Emit(OpCodes.Ret);
             var dynamicType = typeBuilder.CreateType();
             assemblyBuilder.Save(fileName);
-            Console.WriteLine("Saving file " + fileName);
             AssemblyAssert.IsValidAssembly(outputPath);
             MethodInfo methodInfo = dynamicType.GetMethod("DynamicMethod", BindingFlags.Static | BindingFlags.Public);
             return Delegate.CreateDelegate(delegateType, target, methodInfo);

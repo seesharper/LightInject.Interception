@@ -5,7 +5,7 @@ namespace LightInject.Interception.Tests
     using System.IO;
     using System.Linq;
     using System.Reflection;
-    using System.Reflection.Emit;   
+    using System.Reflection.Emit;
 
     using AssemblyName = System.Reflection.AssemblyName;
 
@@ -27,8 +27,10 @@ namespace LightInject.Interception.Tests
 
         public Type CreateType(TypeBuilder typeBuilder)
         {
+
+
             Type proxyType = typeBuilder.CreateType();
-            ((AssemblyBuilder)typeBuilder.Assembly).Save("ProxyAssembly.dll");            
+            ((AssemblyBuilder)typeBuilder.Assembly).Save("ProxyAssembly.dll");
             AssemblyAssert.IsValidAssembly("ProxyAssembly.dll");
             return proxyType;
         }
@@ -41,13 +43,13 @@ namespace LightInject.Interception.Tests
 
         private static AssemblyBuilder GetAssemblyBuilder()
         {
-            var assemblyPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ProxyAssembly.dll");            
+            var assemblyPath = Path.Combine(Path.GetDirectoryName(new Uri(typeof(VerifiableTypeBuilderFactory).Assembly.CodeBase).LocalPath), "ProxyAssembly.dll");
             var assemblybuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(
                 new AssemblyName("ProxyAssembly"), AssemblyBuilderAccess.RunAndSave, Path.GetDirectoryName(assemblyPath));
             return assemblybuilder;
         }
     }
 
-   
+
 }
 #endif
