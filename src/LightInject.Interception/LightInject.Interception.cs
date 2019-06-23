@@ -1807,7 +1807,13 @@ namespace LightInject.Interception
 
             if (proxyDefinition.TargetType.GetTypeInfo().IsInterface && proxyDefinition.ImplementingType != null)
             {
-                targetInvocationMethod = proxyDefinition.ImplementingType.GetTypeInfo().DeclaredMethods.FirstOrDefault(m => m.Name == targetMethod.Name);
+                // TypeInfo.DeclaredMethods doesn't return methods implemented in base class
+                // Different methods can have the same name, with different parameter types
+                // GetRuntimeInterfaceMap correctly maps all implementation methods to interface methods
+                InterfaceMapping interfaceMapping =
+                    proxyDefinition.ImplementingType.GetTypeInfo().GetRuntimeInterfaceMap(targetMethod.DeclaringType);
+                int index = Array.IndexOf(interfaceMapping.InterfaceMethods, targetMethod);
+                targetInvocationMethod = interfaceMapping.TargetMethods[index];
             }
 
             if (targetMethod.IsGenericMethod)
