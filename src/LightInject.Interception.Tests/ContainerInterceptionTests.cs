@@ -178,6 +178,24 @@ namespace LightInject.Interception.Tests
         }
 
         [Fact]
+        public void Intercept_InheritedClassWithoutOverride_InvokesBase()
+        {
+            var container = new ServiceContainer();
+            container.Register<ITargetWithMethod, InheritedTargetWithoutOverride>();
+            container.Intercept(sr => sr.ServiceType == typeof(ITargetWithMethod), factory => new SampleInterceptor());
+            Assert.Equal(nameof(BaseTarget), container.GetInstance<ITargetWithMethod>().GetValue());
+        }
+
+        [Fact]
+        public void Intercept_InheritedClassWithOverride_InvokesInherited()
+        {
+            var container = new ServiceContainer();
+            container.Register<ITargetWithMethod, InheritedTargetWithOverride>();
+            container.Intercept(sr => sr.ServiceType == typeof(ITargetWithMethod), factory => new SampleInterceptor());
+            Assert.Equal(nameof(InheritedTargetWithOverride), container.GetInstance<ITargetWithMethod>().GetValue());
+        }
+
+        [Fact]
         public void issue_229()
         {
             var container = new ServiceContainer();

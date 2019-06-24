@@ -29,6 +29,26 @@ namespace LightInject.Interception.Tests
         }
     }
 
+    public interface ITargetWithMethod
+    {
+        string GetValue();
+    }
+
+    public class BaseTarget : ITargetWithMethod
+    {
+        public virtual string GetValue() => nameof(BaseTarget);
+    }
+
+    public class InheritedTargetWithoutOverride : BaseTarget
+    {
+        // No method override
+    }
+
+    public class InheritedTargetWithOverride : BaseTarget
+    {
+        public override string GetValue() => nameof(InheritedTargetWithOverride);
+    }
+
 
     public interface IAdditionalInterface
     {
