@@ -1,10 +1,12 @@
-#load "nuget:Dotnet.Build, 0.4.0"
+#load "nuget:Dotnet.Build, 0.5.0"
 using static FileUtils;
 using System.Xml.Linq;
 
 var owner = "seesharper";
 var projectName = "LightInject.Interception";
 var root = FileUtils.GetScriptFolder();
+
+var repoFolder = Path.Combine(root, "..");
 var solutionFolder = Path.Combine(root, "..", "src");
 var projectFolder = Path.Combine(root, "..", "src", "LightInject.Interception");
 
