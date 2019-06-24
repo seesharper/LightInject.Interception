@@ -183,6 +183,7 @@ namespace LightInject.Interception
     /// <summary>
     /// Implemented by all proxy types.
     /// </summary>
+    [NoInternalize]
     public interface IProxy
     {
         /// <summary>
@@ -194,6 +195,7 @@ namespace LightInject.Interception
     /// <summary>
     /// Represents a class that contains detailed information about the method being invoked.
     /// </summary>
+    [NoInternalize]
     public interface IInvocationInfo
     {
         /// <summary>
@@ -228,6 +230,7 @@ namespace LightInject.Interception
     /// Represents a class that is capable of creating a delegate used to invoke
     /// a method without using late-bound invocation.
     /// </summary>
+    [NoInternalize]
     public interface IMethodBuilder
     {
         /// <summary>
@@ -241,6 +244,7 @@ namespace LightInject.Interception
     /// <summary>
     /// Represents the skeleton of a dynamic method.
     /// </summary>
+    [NoInternalize]
     public interface IDynamicMethodSkeleton
     {
         /// <summary>
@@ -259,6 +263,7 @@ namespace LightInject.Interception
     /// <summary>
     /// Represents a class that is capable of creating a proxy <see cref="Type"/>.
     /// </summary>
+    [NoInternalize]
     public interface IProxyBuilder
     {
         /// <summary>
@@ -273,6 +278,7 @@ namespace LightInject.Interception
     /// <summary>
     /// Represents a class that intercepts method calls.
     /// </summary>
+    [NoInternalize]
     public interface IInterceptor
     {
         /// <summary>
@@ -326,6 +332,7 @@ namespace LightInject.Interception
     /// A factory class used to create a <see cref="CompositeInterceptor"/> if the target method has
     /// multiple interceptors.
     /// </summary>
+    [NoInternalize]
     public static class MethodInterceptorFactory
     {
         /// <summary>
@@ -348,6 +355,7 @@ namespace LightInject.Interception
     /// <summary>
     /// Contains information about the target method being intercepted.
     /// </summary>
+    [NoInternalize]
     public class TargetMethodInfo
     {
         /// <summary>
@@ -386,6 +394,7 @@ namespace LightInject.Interception
     /// <summary>
     /// Contains information about the open generic target method being intercepted.
     /// </summary>
+    [NoInternalize]
     public class OpenGenericTargetMethodInfo
     {
         private readonly MethodInfo openGenericMethod;
@@ -458,6 +467,7 @@ namespace LightInject.Interception
     /// A class that is capable of creating a delegate used to invoke
     /// a method without using late-bound invocation.
     /// </summary>
+    [NoInternalize]
     public class DynamicMethodBuilder : IMethodBuilder
     {
         private readonly Func<IDynamicMethodSkeleton> methodSkeletonFactory;
@@ -610,6 +620,7 @@ namespace LightInject.Interception
     /// An <see cref="IMethodBuilder"/> cache decorator that ensures that
     /// for a given <see cref="MethodInfo"/>, only a single dynamic method is created.
     /// </summary>
+    [NoInternalize]
     public class CachedMethodBuilder : IMethodBuilder
     {
         private readonly IMethodBuilder methodBuilder;
@@ -641,6 +652,7 @@ namespace LightInject.Interception
     /// An implementation of the <see cref="IInvocationInfo"/> interface that forwards
     /// method calls the actual target.
     /// </summary>
+    [NoInternalize]
     public class TargetInvocationInfo : IInvocationInfo
     {
         private readonly TargetMethodInfo targetMethodInfo;
@@ -719,6 +731,7 @@ namespace LightInject.Interception
     /// An implementation of the <see cref="IInvocationInfo"/> interface that forwards
     /// method calls to the next <see cref="IInterceptor"/> in the interceptor chain.
     /// </summary>
+    [NoInternalize]
     public class InterceptorInvocationInfo : IInvocationInfo
     {
         private readonly IInvocationInfo nextInvocationInfo;
@@ -793,6 +806,7 @@ namespace LightInject.Interception
     /// A composite <see cref="IInterceptor"/> that is responsible for
     /// passing the <see cref="IInvocationInfo"/> down the interceptor chain.
     /// </summary>
+    [NoInternalize]
     public class CompositeInterceptor : IInterceptor
     {
         private readonly Lazy<IInterceptor>[] interceptors;
@@ -827,6 +841,7 @@ namespace LightInject.Interception
     /// <summary>
     /// Contains information about a registered <see cref="IInterceptor"/>.
     /// </summary>
+    [NoInternalize]
     public class InterceptorInfo
     {
         /// <summary>
@@ -848,6 +863,7 @@ namespace LightInject.Interception
     /// <summary>
     /// Represents the definition of a proxy type.
     /// </summary>
+    [NoInternalize]
     public class ProxyDefinition
     {
         private readonly ICollection<InterceptorInfo> interceptors = new Collection<InterceptorInfo>();
@@ -2482,4 +2498,8 @@ namespace LightInject.Interception
 
     }
 #endif
+    internal class NoInternalize : Attribute
+    {
+
+    }
 }
