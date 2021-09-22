@@ -1666,10 +1666,15 @@ namespace LightInject.Interception
                 var constructorBuilder = typeBuilder.DefineConstructor(methodAttributes, callingConvention, parameterTypes);
                 foreach (var parameterInfo in constructorInfo.GetParameters())
                 {
-                    constructorBuilder.DefineParameter(
+                    var parameterBuilder = constructorBuilder.DefineParameter(
                         parameterInfo.Position + 1,
                         parameterInfo.Attributes,
                         parameterInfo.Name);
+
+                    foreach (var customAttribute in parameterInfo.CustomAttributes)
+                    {
+                        parameterBuilder.SetCustomAttribute(CreateCustomAttributeBuilder(customAttribute));
+                    }
                 }
 
                 var generator = constructorBuilder.GetILGenerator();
