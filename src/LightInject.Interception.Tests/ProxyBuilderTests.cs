@@ -652,6 +652,18 @@ namespace LightInject.Interception.Tests
             interceptorMock.Verify(i => i.Invoke(It.IsAny<IInvocationInfo>()), Times.Never());
         }
 
+        [Fact]
+        public void ShouldCopyConstructorParameterAttributes()
+        {
+            var proxyBuilder = CreateProxyBuilder();
+            var proxyDefinition = new ProxyDefinition(typeof(ClassWithAttributedParameterInConstructor));
+            proxyDefinition.Implement(() => new SampleInterceptor(), info => true);
+            var proxyType = proxyBuilder.GetProxyType(proxyDefinition);
+            var constructorInfo = proxyType.GetConstructors().Single();
+            var parameterInfo = constructorInfo.GetParameters().Single();
+            Assert.NotNull(parameterInfo.GetCustomAttribute<CustomConstructorParameterAttribute>());
+        }
+
         #region Generics
 
         [Fact]

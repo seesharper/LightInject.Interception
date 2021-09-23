@@ -515,6 +515,18 @@ namespace LightInject.Interception.Tests
         }
     }
 
+    [AttributeUsage(AttributeTargets.Parameter)]
+    public class CustomConstructorParameterAttribute : Attribute
+    {
+    }
+
+    public class ClassWithAttributedParameterInConstructor
+    {
+        public ClassWithAttributedParameterInConstructor([CustomConstructorParameter] string input)
+        {
+        }
+    }
+
     public interface IClassWithThreeMethods
     {
         void A();
