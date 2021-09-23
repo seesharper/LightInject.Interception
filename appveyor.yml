@@ -2,7 +2,7 @@ version: 1.0.{build}
 image: Visual Studio 2019
 
 install:
-- cmd: choco install dotnet.script
+- cmd: dotnet tool install -g dotnet-script
 
 build_script:
 - cmd: >-
