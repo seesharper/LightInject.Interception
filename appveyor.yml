@@ -23,4 +23,4 @@ environment:
     GITHUB_REPO_TOKEN:
         secure: FSPXTPuTgFMaZA7DubJoX217SkWhFLN2BGqCCi4gBux967eFtwkhbrafm7ay8cP2
     NUGET_APIKEY:
-        secure: ynFcRQX0oim3DdR5Y8s4BtynS/NYRG059GvWGckqhpZGNZVvhvvn5UUWgsyPKLKm
+        secure: JfKADiDMHJBIYRnlh56cqh0HCqCRmeI6XJtFfGSPUltPNs5BDfAvkTC2mmckhUbK
